@@ -1,0 +1,77 @@
+// prisma/schema.prisma
+
+// Este é o arquivo principal do seu esquema Prisma.
+// Saiba mais em https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -- ENUMS --
+// Define um tipo personalizado para garantir que a transação só possa
+// ser 'RECEITA' ou 'DESPESA'.
+enum TransactionType {
+  RECEITA
+  DESPESA
+}
+
+
+// -- NOSSOS MODELOS DE DADOS --
+
+// Modelo para o Usuário (já existente)
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // RELACIONAMENTOS: Um usuário pode ter muitas categorias e muitas transações.
+  categories   Category[]
+  transactions Transaction[]
+}
+
+// Modelo para as Categorias de transações
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  color     String?  // O '?' torna o campo opcional (pode ser nulo)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // RELACIONAMENTO: A categoria pertence a um único usuário.
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+
+  // RELACIONAMENTO: Uma categoria pode estar associada a muitas transações.
+  transactions Transaction[]
+
+  // Garante que o nome da categoria seja único por usuário.
+  @@unique([userId, name])
+}
+
+// Modelo para as Transações financeiras
+model Transaction {
+  id          String          @id @default(uuid())
+  description String
+  amount      Float           // Usamos Float para valores monetários
+  date        DateTime
+  type        TransactionType // Usa o nosso Enum definido acima
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // RELACIONAMENTO: A transação pertence a um único usuário.
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId  String
+
+  // RELACIONAMENTO: A transação pode (opcionalmente) ter uma categoria.
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  categoryId String?   // A chave estrangeira também é opcional
+}
