@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  # Serviço do Banco de Dados PostgreSQL
+  db:
+    image: postgres:16-alpine
+    container_name: financas_db_container # Nome mais explícito para o contêiner
+    restart: always # Reinicia o contêiner automaticamente se ele parar
+    environment:
+      # Use o nome do banco de dados que seu projeto espera
+      POSTGRES_DB: financas_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: aguiar2003
+    ports:
+      # Mapeia a porta do Host (sua máquina) para a porta do Contêiner
+      - "5432:5432"
+    volumes:
+      # Volume nomeado para persistir os dados do banco
+      - db_data:/var/lib/postgresql/data
+      # Mapeia o arquivo de backup para ser executado na primeira inicialização
+      - ./financas.sql:/docker-entrypoint-initdb.d/init.sql
+  # --- Serviço da API (manteremos comentado até o BD estar 100% funcional) ---
+  # financas-api:
+  #   build: .
+  #   container_name: financas_api_app
+  #   ports:
+  #     - "3000:3000" # Use a mesma porta do seu app Node.js
+  #   environment:
+  #     # Atualize seu .env ou configure aqui para apontar para o container 'db'
+  #     DATABASE_URL: "postgresql://postgres:aguiar2003@db:5432/financas_db?schema=public"
+  #     PORT: 3000
+  #     JWT_SECRET: "seu_jwt_secret_aqui"
+  #   depends_on:
+  #     - db
+
+volumes:
+  # Define o volume para persistência dos dados
+  db_data:

@@ -13,3 +13,6 @@ lerna-debug.log*
 # Prisma
 .prisma/client
 /src/generated/prisma
+
+
+financas.sql
