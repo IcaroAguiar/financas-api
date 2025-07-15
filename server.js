@@ -10,6 +10,8 @@ const express = require("express");
 const userRoutes = require("./src/routes/userRoutes");
 const transactionRoutes = require('./src/routes/transactionRoutes');
 const categoryRoutes = require('./src/routes/categoryRoutes'); 
+const debtorRoutes = require('./src/routes/debtorRoutes');
+const debtRoutes = require('./src/routes/debtRoutes');
 
 
 // Cria uma instância do aplicativo express
@@ -31,6 +33,8 @@ app.get("/", (req, res) => {
 app.use("/api/users", userRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/debtors', debtorRoutes);
+app.use('/api/debts', debtRoutes);
 // Inicia o servidor e o faz escutar na porta definida
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
