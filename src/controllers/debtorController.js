@@ -39,6 +39,32 @@ const updateDebtor = async (req, res) => {
   }
 };
 
+// Listar dívidas pelo ID do devedor
+const getDebtsByDebtorId = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const debtor = await prisma.debtor.findUnique({
+      where: { id },
+      include: {
+        debts: {
+          include: {
+            payments: true,
+          },
+        },
+      },
+    });
+
+    if (!debtor) {
+      return res.status(404).json({ error: 'Devedor não encontrado.' });
+    }
+
+    res.json(debtor.debts);
+  } catch (err) {
+    res.status(500).json({ error: 'Erro ao buscar dívidas do devedor.' });
+  }
+};
+
 // Deletar devedor
 const deleteDebtor = async (req, res) => {
   const { id } = req.params;
@@ -54,5 +80,6 @@ module.exports = {
     getAllDebtors,
     createDebtor,
     updateDebtor,
+    getDebtsByDebtorId,
     deleteDebtor,
 };

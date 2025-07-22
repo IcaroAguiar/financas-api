@@ -88,19 +88,23 @@ model Debtor {
   debts     Debt[]
 }
 
+enum DebtStatus {
+  PENDENTE
+  PAGA
+}
+
 model Debt {
-  id          String   @id @default(uuid())
+  id          String     @id @default(uuid())
   description String
   totalAmount Float
   dueDate     DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  status      DebtStatus @default(PENDENTE)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 
-  // RELACIONAMENTO: A dívida pertence a um devedor
   debtor   Debtor @relation(fields: [debtorId], references: [id], onDelete: Cascade)
   debtorId String
 
-  // RELACIONAMENTO: Uma dívida pode ter vários pagamentos
   payments Payment[]
 }
 
