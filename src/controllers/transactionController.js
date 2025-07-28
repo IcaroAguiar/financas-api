@@ -137,9 +137,89 @@ const deleteTransaction = async (req, res) => {
   }
 };
 
+// --- OBTER RESUMO FINANCEIRO DO USUÁRIO (DASHBOARD) ---
+const getFinancialSummary = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Calcula o total de receitas
+    const totalIncome = await prisma.transaction.aggregate({
+      where: { 
+        userId, 
+        type: TransactionType.RECEITA 
+      },
+      _sum: { amount: true }
+    });
+
+    // Calcula o total de despesas
+    const totalExpenses = await prisma.transaction.aggregate({
+      where: { 
+        userId, 
+        type: TransactionType.DESPESA 
+      },
+      _sum: { amount: true }
+    });
+
+    // Busca as últimas transações
+    const recentTransactions = await prisma.transaction.findMany({
+      where: { userId },
+      orderBy: { date: "desc" },
+      take: 5,
+      include: { category: true }
+    });
+
+    // Calcula resumo do mês atual
+    const currentMonth = new Date();
+    const startOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const endOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+
+    const monthlyIncome = await prisma.transaction.aggregate({
+      where: { 
+        userId,
+        type: TransactionType.RECEITA,
+        date: {
+          gte: startOfMonth,
+          lte: endOfMonth
+        }
+      },
+      _sum: { amount: true }
+    });
+
+    const monthlyExpenses = await prisma.transaction.aggregate({
+      where: { 
+        userId,
+        type: TransactionType.DESPESA,
+        date: {
+          gte: startOfMonth,
+          lte: endOfMonth
+        }
+      },
+      _sum: { amount: true }
+    });
+
+    const summary = {
+      totalIncome: totalIncome._sum.amount || 0,
+      totalExpenses: totalExpenses._sum.amount || 0,
+      balance: (totalIncome._sum.amount || 0) - (totalExpenses._sum.amount || 0),
+      recentTransactions,
+      monthly: {
+        income: monthlyIncome._sum.amount || 0,
+        expenses: monthlyExpenses._sum.amount || 0,
+        balance: (monthlyIncome._sum.amount || 0) - (monthlyExpenses._sum.amount || 0)
+      }
+    };
+
+    res.status(200).json(summary);
+  } catch (error) {
+    console.error("Erro ao obter resumo financeiro:", error);
+    res.status(500).json({ error: "Não foi possível obter o resumo financeiro." });
+  }
+};
+
 module.exports = {
   createTransaction,
   getAllTransactions,
   updateTransaction,
   deleteTransaction,
+  getFinancialSummary,
 };

@@ -12,14 +12,72 @@ const router = Router();
 
 // Define a rota para o método POST que irá criar um usuário
 // A URL será '/users', mas o prefixo '/api' será adicionado no server.js
+/**
+ * @swagger
+ * /api/users:
+ *   post:
+ *     summary: Create a new user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: The user was successfully created
+ *       400:
+ *         description: Bad request
+ */
 router.post("/", userController.createUser);
 
-// Define a rota para o método POST que irá autenticar um usuário
+/**
+ * @swagger
+ * /api/users/login:
+ *   post:
+ *     summary: Login a user
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: The user was successfully logged in
+ *       401:
+ *         description: Unauthorized
+ */
 router.post("/login", userController.loginUser);
 
-// A rota GET '/me' agora usa o `authMiddleware`.
-// O middleware será executado ANTES da função `userController.getMe`.
-// Se o token for inválido, o middleware retornará um erro e `getMe` nunca será chamado.
+/**
+ * @swagger
+ * /api/users/me:
+ *   get:
+ *     summary: Get the current user
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: The current user
+ *       401:
+ *         description: Unauthorized
+ */
 router.get("/me", authMiddleware, userController.getMe);
 
 // Exporta o roteador

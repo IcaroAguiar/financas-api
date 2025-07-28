@@ -5,6 +5,9 @@ require("dotenv").config();
 
 // Importa o framework 'express' para criar o servidor
 const express = require("express");
+const cors = require("cors");
+const helmet = require("helmet");
+const morgan = require("morgan");
 
 // Importa as rotas 
 const userRoutes = require("./src/routes/userRoutes");
@@ -20,13 +23,30 @@ const app = express();
 // Define a porta do servidor, usando a variável de ambiente PORT ou 3000 como padrão
 const PORT = process.env.PORT || 3000;
 
+// Security headers middleware
+app.use(helmet());
+
+// Request logging middleware
+app.use(morgan('combined'));
+
 // Middleware para permitir que o express entenda requisições com corpo em JSON
 app.use(express.json());
+
+// CORS middleware para permitir requisições do frontend
+app.use(cors({
+  origin: ['http://localhost:3000', 'http://localhost:8081', 'exp://192.168.0.*:8081', 'exp://192.168.1.*:8081', 'exp://*'],
+  credentials: true
+}));
 
 // Rota de teste para verificar se o servidor está funcionando
 app.get("/", (req, res) => {
   res.send("API de Finanças está no ar!");
 });
+
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./src/swaggerConfig');
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Aponta os caminhos da API
 app.use("/api/users", userRoutes);
@@ -35,6 +55,37 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/debtors', debtorRoutes);
 app.use('/api/debts', debtRoutes);
 app.use('/api/payments', paymentsRoutes);
+
+// Middleware de tratamento de erros (deve vir por último)
+app.use((err, req, res, next) => {
+  console.error('Error:', err.stack);
+  
+  // Se é um erro de validação do Prisma
+  if (err.code === 'P2002') {
+    return res.status(400).json({ 
+      error: 'Dados duplicados. Este registro já existe.' 
+    });
+  }
+  
+  // Se é um erro de registro não encontrado
+  if (err.code === 'P2025') {
+    return res.status(404).json({ 
+      error: 'Registro não encontrado.' 
+    });
+  }
+  
+  // Erro genérico
+  res.status(500).json({ 
+    error: 'Erro interno do servidor' 
+  });
+});
+
+// Middleware para rotas não encontradas
+app.use((req, res) => {
+  res.status(404).json({ 
+    error: 'Rota não encontrada' 
+  });
+});
 
 // Inicia o servidor e o faz escutar na porta definida
 app.listen(PORT, () => {
