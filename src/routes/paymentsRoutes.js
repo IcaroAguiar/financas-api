@@ -6,6 +6,8 @@ const authMiddleware = require('../middlewares/authMiddleware');
 // Apply authentication middleware to all payment routes
 router.use(authMiddleware);
 
+// EXISTING ROUTES - Legacy payment system
+
 // Criar pagamento
 /**
  * @swagger

@@ -1,13 +1,31 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
+// Helper function to calculate debt fields
+const calculateDebtFields = (debt) => {
+  const paidAmount = debt.payments?.reduce((sum, payment) => sum + payment.amount, 0) || 0;
+  const remainingAmount = debt.totalAmount - paidAmount;
+  const calculatedStatus = remainingAmount <= 0 ? 'PAGA' : 'PENDENTE';
+  
+  return {
+    ...debt,
+    paidAmount,
+    remainingAmount,
+    status: calculatedStatus,
+  };
+};
+
 // Listar todas as dívidas
 const getAllDebts = async (req, res) => {
   try {
     const debts = await prisma.debt.findMany({
       include: { debtor: true, payments: true }
     });
-    res.json(debts);
+    
+    // Add calculated fields to each debt
+    const debtsWithCalculatedFields = debts.map(calculateDebtFields);
+    
+    res.json(debtsWithCalculatedFields);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar dívidas' });
   }
@@ -76,13 +94,16 @@ const getDebtById = async (req, res) => {
       return res.status(404).json({ error: 'Dívida não encontrada' });
     }
 
-    res.json(debt);
+    // Add calculated fields to the debt
+    const debtWithCalculatedFields = calculateDebtFields(debt);
+    
+    res.json(debtWithCalculatedFields);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar dívida' });
   }
 };
 
-// Listar dívidas por status
+// Listar dívidas por status (calculado)
 const getDebtsByStatus = async (req, res) => {
   const { status } = req.params; // status = "PENDENTE" ou "PAGA"
 
@@ -91,11 +112,16 @@ const getDebtsByStatus = async (req, res) => {
   }
 
   try {
+    // Get all debts and filter by calculated status
     const debts = await prisma.debt.findMany({
-      where: { status: status.toUpperCase() },
       include: { debtor: true, payments: true },
     });
-    res.json(debts);
+    
+    // Add calculated fields and filter by calculated status
+    const debtsWithCalculatedFields = debts.map(calculateDebtFields);
+    const filteredDebts = debtsWithCalculatedFields.filter(debt => debt.status === status.toUpperCase());
+    
+    res.json(filteredDebts);
   } catch (err) {
     res.status(500).json({ error: 'Erro ao buscar dívidas por status' });
   }

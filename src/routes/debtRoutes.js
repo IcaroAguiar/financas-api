@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const debtController = require('../controllers/debtController');
+const paymentController = require('../controllers/paymentController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
 // Apply authentication middleware to all debt routes
@@ -165,4 +166,78 @@ router.put('/:id', debtController.updateDebt);
  *         description: Unauthorized
  */
 router.delete('/:id', debtController.deleteDebt);
+
+// PAYMENT ROUTES - Task 2: Partial Debt Payments Feature
+
+/**
+ * @swagger
+ * /api/debts/{debtId}/payments:
+ *   post:
+ *     summary: Create a new payment for a specific debt
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: debtId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The debt id
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 description: Payment amount (required)
+ *               paymentDate:
+ *                 type: string
+ *                 format: date-time
+ *                 description: Payment date (optional, defaults to now)
+ *               notes:
+ *                 type: string
+ *                 description: Payment notes (optional)
+ *     responses:
+ *       201:
+ *         description: The payment was successfully created
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Debt not found
+ */
+router.post('/:debtId/payments', paymentController.createPayment);
+
+/**
+ * @swagger
+ * /api/debts/{debtId}/payments:
+ *   get:
+ *     summary: Get all payments for a specific debt
+ *     tags: [Payments]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: debtId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The debt id
+ *     responses:
+ *       200:
+ *         description: A list of payments for the specified debt
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Debt not found
+ */
+router.get('/:debtId/payments', paymentController.getPaymentsByDebt);
+
 module.exports = router;

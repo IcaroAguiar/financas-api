@@ -1,8 +1,3 @@
-// prisma/schema.prisma
-
-// Este é o arquivo principal do seu esquema Prisma.
-// Saiba mais em https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,68 +7,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// -- ENUMS --
-// Define um tipo personalizado para garantir que a transação só possa
-// ser 'RECEBIMENTO' ou 'DESPESA'.
-enum TransactionType {
-  RECEBIMENTO
-  DESPESA
-}
-
-
-// -- NOSSOS MODELOS DE DADOS --
-
-// Modelo para o Usuário (já existente)
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  name      String
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // RELACIONAMENTOS: Um usuário pode ter muitas categorias e muitas transações.
+  id           String        @id @default(uuid())
+  email        String        @unique
+  name         String
+  password     String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   categories   Category[]
   transactions Transaction[]
 }
 
-// Modelo para as Categorias de transações
 model Category {
-  id        String   @id @default(uuid())
-  name      String
-  color     String?  // O '?' torna o campo opcional (pode ser nulo)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // RELACIONAMENTO: A categoria pertence a um único usuário.
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId  String
-
-  // RELACIONAMENTO: Uma categoria pode estar associada a muitas transações.
+  id           String        @id @default(uuid())
+  name         String
+  color        String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  userId       String
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions Transaction[]
 
-  // Garante que o nome da categoria seja único por usuário.
   @@unique([userId, name])
 }
 
-// Modelo para as Transações financeiras
 model Transaction {
   id          String          @id @default(uuid())
   description String
-  amount      Float           // Usamos Float para valores monetários
+  amount      Float
   date        DateTime
-  type        TransactionType // Usa o nosso Enum definido acima
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  // RELACIONAMENTO: A transação pertence a um único usuário.
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId  String
-
-  // RELACIONAMENTO: A transação pode (opcionalmente) ter uma categoria.
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  categoryId String?   // A chave estrangeira também é opcional
+  type        TransactionType
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  userId      String
+  categoryId  String?
+  category    Category?       @relation(fields: [categoryId], references: [id])
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Debtor {
@@ -83,14 +52,7 @@ model Debtor {
   phone     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  // RELACIONAMENTO: Um devedor pode ter várias dívidas
   debts     Debt[]
-}
-
-enum DebtStatus {
-  PENDENTE
-  PAGA
 }
 
 model Debt {
@@ -98,24 +60,31 @@ model Debt {
   description String
   totalAmount Float
   dueDate     DateTime
-  status      DebtStatus @default(PENDENTE)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-
-  debtor   Debtor @relation(fields: [debtorId], references: [id], onDelete: Cascade)
-  debtorId String
-
-  payments Payment[]
+  debtorId    String
+  status      DebtStatus @default(PENDENTE)
+  debtor      Debtor     @relation(fields: [debtorId], references: [id], onDelete: Cascade)
+  payments    Payment[]
 }
 
 model Payment {
-  id        String   @id @default(uuid())
-  amount    Float
-  date      DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  amount      Float
+  paymentDate DateTime @default(now())
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  debtId      String
+  debt        Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
+}
 
-  // RELACIONAMENTO: O pagamento pertence a uma dívida
-  debt   Debt   @relation(fields: [debtId], references: [id], onDelete: Cascade)
-  debtId String
+enum TransactionType {
+  RECEITA
+  DESPESA
+}
+
+enum DebtStatus {
+  PENDENTE
+  PAGA
 }
