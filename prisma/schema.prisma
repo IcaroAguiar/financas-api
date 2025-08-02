@@ -14,9 +14,9 @@ datasource db {
 
 // -- ENUMS --
 // Define um tipo personalizado para garantir que a transação só possa
-// ser 'RECEITA' ou 'DESPESA'.
+// ser 'RECEBIMENTO' ou 'DESPESA'.
 enum TransactionType {
-  RECEITA
+  RECEBIMENTO
   DESPESA
 }
 

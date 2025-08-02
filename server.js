@@ -34,7 +34,7 @@ app.use(express.json());
 
 // CORS middleware para permitir requisições do frontend
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:8081', 'exp://192.168.0.*:8081', 'exp://192.168.1.*:8081', 'exp://*'],
+  origin: ['http://localhost:3000', 'http://localhost:8081', 'http://localhost:8082', 'exp://192.168.0.*:8081', 'exp://192.168.0.*:8082', 'exp://192.168.1.*:8081', 'exp://192.168.1.*:8082', 'exp://*'],
   credentials: true
 }));
 
@@ -87,7 +87,8 @@ app.use((req, res) => {
   });
 });
 
-// Inicia o servidor e o faz escutar na porta definida
-app.listen(PORT, () => {
+// Inicia o servidor e o faz escutar na porta definida em todas as interfaces
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
+  console.log(`Acesse em: http://192.168.0.24:${PORT}`);
 });

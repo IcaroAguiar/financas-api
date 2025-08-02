@@ -19,10 +19,10 @@ const createTransaction = async (req, res) => {
         });
     }
 
-    if (type !== TransactionType.RECEITA && type !== TransactionType.DESPESA) {
+    if (type !== TransactionType.RECEBIMENTO && type !== TransactionType.DESPESA) {
       return res
         .status(400)
-        .json({ error: "O tipo da transação deve ser RECEITA ou DESPESA." });
+        .json({ error: "O tipo da transação deve ser RECEBIMENTO ou DESPESA." });
     }
 
     const newTransaction = await prisma.transaction.create({
@@ -146,7 +146,7 @@ const getFinancialSummary = async (req, res) => {
     const totalIncome = await prisma.transaction.aggregate({
       where: { 
         userId, 
-        type: TransactionType.RECEITA 
+        type: TransactionType.RECEBIMENTO 
       },
       _sum: { amount: true }
     });
@@ -176,7 +176,7 @@ const getFinancialSummary = async (req, res) => {
     const monthlyIncome = await prisma.transaction.aggregate({
       where: { 
         userId,
-        type: TransactionType.RECEITA,
+        type: TransactionType.RECEBIMENTO,
         date: {
           gte: startOfMonth,
           lte: endOfMonth
