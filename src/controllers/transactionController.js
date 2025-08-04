@@ -19,10 +19,10 @@ const createTransaction = async (req, res) => {
         });
     }
 
-    if (type !== TransactionType.RECEBIMENTO && type !== TransactionType.DESPESA) {
+    if (type !== TransactionType.RECEITA && type !== TransactionType.DESPESA) {
       return res
         .status(400)
-        .json({ error: "O tipo da transação deve ser RECEBIMENTO ou DESPESA." });
+        .json({ error: "O tipo da transação deve ser RECEITA ou DESPESA." });
     }
 
     const newTransaction = await prisma.transaction.create({
