@@ -8,41 +8,73 @@ datasource db {
 }
 
 model User {
-  id           String        @id @default(uuid())
-  email        String        @unique
-  name         String
-  password     String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  categories   Category[]
-  transactions Transaction[]
+  id            String         @id @default(uuid())
+  email         String         @unique
+  name          String
+  password      String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  categories    Category[]
+  transactions  Transaction[]
+  accounts      Account[]
+  subscriptions Subscription[]
+}
+
+model Account {
+  id            String         @id @default(uuid())
+  name          String
+  type          String
+  balance       Float?         @default(0.0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+  subscriptions Subscription[]
+
+  @@unique([userId, name])
 }
 
 model Category {
-  id           String        @id @default(uuid())
-  name         String
-  color        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  userId       String
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
+  id            String         @id @default(uuid())
+  name          String
+  color         String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  userId        String
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  Transaction[]
+  subscriptions Subscription[]
 
   @@unique([userId, name])
 }
 
 model Transaction {
-  id          String          @id @default(uuid())
-  description String
-  amount      Float
-  date        DateTime
-  type        TransactionType
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  userId      String
-  categoryId  String?
-  category    Category?       @relation(fields: [categoryId], references: [id])
-  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String          @id @default(uuid())
+  description    String
+  amount         Float
+  date           DateTime
+  type           TransactionType
+  isRecurring    Boolean         @default(false)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  userId         String
+  categoryId     String?
+  accountId      String?
+  subscriptionId String?
+  
+  // Payment plan fields
+  isInstallmentPlan         Boolean                 @default(false)
+  installmentCount          Int?
+  installmentFrequency      InstallmentFrequency?
+  installmentAmount         Float?
+  firstInstallmentDate      DateTime?
+  
+  category       Category?       @relation(fields: [categoryId], references: [id])
+  account        Account?        @relation(fields: [accountId], references: [id])
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription   Subscription?   @relation(fields: [subscriptionId], references: [id])
+  installments   TransactionInstallment[]
 }
 
 model Debtor {
@@ -56,16 +88,24 @@ model Debtor {
 }
 
 model Debt {
-  id          String     @id @default(uuid())
-  description String
-  totalAmount Float
-  dueDate     DateTime
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  debtorId    String
-  status      DebtStatus @default(PENDENTE)
-  debtor      Debtor     @relation(fields: [debtorId], references: [id], onDelete: Cascade)
-  payments    Payment[]
+  id            String     @id @default(uuid())
+  description   String
+  totalAmount   Float
+  dueDate       DateTime
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  debtorId      String
+  status        DebtStatus @default(PENDENTE)
+  
+  // Installment plan fields
+  isInstallment         Boolean                 @default(false)
+  installmentCount      Int?
+  installmentFrequency  InstallmentFrequency?
+  installmentAmount     Float?
+  
+  debtor        Debtor     @relation(fields: [debtorId], references: [id], onDelete: Cascade)
+  payments      Payment[]
+  installments  Installment[]
 }
 
 model Payment {
@@ -79,12 +119,85 @@ model Payment {
   debt        Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
 }
 
+model Installment {
+  id                String            @id @default(uuid())
+  installmentNumber Int
+  amount            Float
+  dueDate           DateTime
+  paidDate          DateTime?
+  status            InstallmentStatus @default(PENDENTE)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  debtId            String
+  debt              Debt              @relation(fields: [debtId], references: [id], onDelete: Cascade)
+}
+
+model TransactionInstallment {
+  id                String            @id @default(uuid())
+  installmentNumber Int
+  amount            Float
+  dueDate           DateTime
+  paidDate          DateTime?
+  status            InstallmentStatus @default(PENDENTE)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  transactionId     String
+  transaction       Transaction       @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id              String                @id @default(uuid())
+  name            String
+  description     String?
+  amount          Float
+  type            TransactionType
+  frequency       SubscriptionFrequency
+  startDate       DateTime
+  endDate         DateTime?
+  isActive        Boolean               @default(true)
+  nextPaymentDate DateTime
+  lastProcessedAt DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  
+  // Relations
+  userId          String
+  categoryId      String?
+  accountId       String?
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category        Category?             @relation(fields: [categoryId], references: [id])
+  account         Account?              @relation(fields: [accountId], references: [id])
+  
+  // Generated transactions
+  transactions    Transaction[]
+
+  @@unique([userId, name])
+}
+
 enum TransactionType {
   RECEITA
   DESPESA
 }
 
+enum SubscriptionFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
 enum DebtStatus {
   PENDENTE
   PAGA
+}
+
+enum InstallmentFrequency {
+  WEEKLY
+  MONTHLY
+}
+
+enum InstallmentStatus {
+  PENDENTE
+  PAGO
+  ATRASADO
 }

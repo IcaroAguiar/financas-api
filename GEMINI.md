@@ -1,6 +1,6 @@
-# CLAUDE.md - Financas API Backend
+# GEMINI.md - Financas API Backend
 
-This file provides guidance to Claude Code when working with the backend API component of the personal finance management application.
+This file provides guidance to Gemini Code when working with the backend API component of the personal finance management application.
 
 ## Project Overview
 
@@ -64,12 +64,10 @@ financas-api/
 ### Core Entities
 
 - **User**: Authentication and user management
-- **Transaction**: Income/expense records with categories and installment support
-- **TransactionInstallment**: Individual installments for payment plan transactions
+- **Transaction**: Income/expense records with categories
 - **Category**: User-defined transaction categories
 - **Debtor**: People who owe money
-- **Debt**: Debt records with due dates and installment support
-- **Installment**: Individual installments for debt payment plans
+- **Debt**: Debt records with due dates
 - **Payment**: Individual debt payments
 
 ### Relationships
@@ -79,9 +77,7 @@ financas-api/
 - User → Debtors (1:N)
 - Debtor → Debts (1:N)
 - Debt → Payments (1:N)
-- Debt → Installments (1:N)
 - Transaction → Category (N:1)
-- Transaction → TransactionInstallments (1:N)
 
 ## API Endpoints
 
@@ -91,13 +87,10 @@ financas-api/
 - `GET /api/users/profile` - Get user profile (protected)
 
 ### Transactions
-- `GET /api/transactions` - List user transactions (includes installments)
-- `POST /api/transactions` - Create transaction (supports payment plans)
+- `GET /api/transactions` - List user transactions
+- `POST /api/transactions` - Create transaction
 - `PUT /api/transactions/:id` - Update transaction
 - `DELETE /api/transactions/:id` - Delete transaction
-- `PUT /api/transactions/:transactionId/installments/:installmentId/pay` - Mark installment as paid
-- `PUT /api/transactions/:transactionId/pay` - Mark entire transaction as paid
-- `POST /api/transactions/:transactionId/partial-payment` - Register partial payment
 
 ### Categories
 - `GET /api/categories` - List user categories
@@ -199,68 +192,15 @@ npm run test:coverage
 - Use process manager (PM2) for production
 - Configure database connection pooling
 
-## Payment Plan System (Parcelamento)
-
-### Transaction Payment Plans
-
-The system supports Brazilian-style payment plans (parcelamento) for transactions:
-
-#### Create Transaction with Payment Plan
-```json
-POST /api/transactions
-{
-  "description": "Compra no Cartão",
-  "amount": 1200.00,
-  "date": "2025-08-05",
-  "type": "DESPESA",
-  "categoryId": "category-uuid",
-  "isInstallmentPlan": true,
-  "installmentCount": 6,
-  "installmentFrequency": "MONTHLY",
-  "firstInstallmentDate": "2025-08-15"
-}
-```
-
-#### Payment Plan Features
-- **Automatic Installment Creation**: Creates individual installment records
-- **Flexible Frequencies**: MONTHLY or WEEKLY installments
-- **Payment Tracking**: Individual installment status (PENDENTE/PAGO/ATRASADO)
-- **Partial Payments**: Apply payments to earliest pending installments
-- **Full Payment**: Mark all remaining installments as paid at once
-
-#### Database Schema
-```prisma
-model Transaction {
-  // ... existing fields
-  isInstallmentPlan     Boolean                 @default(false)
-  installmentCount      Int?
-  installmentFrequency  InstallmentFrequency?
-  installmentAmount     Float?
-  firstInstallmentDate  DateTime?
-  installments          TransactionInstallment[]
-}
-
-model TransactionInstallment {
-  id                String            @id @default(uuid())
-  installmentNumber Int
-  amount            Float
-  dueDate           DateTime
-  paidDate          DateTime?
-  status            InstallmentStatus @default(PENDENTE)
-  transactionId     String
-  transaction       Transaction       @relation(fields: [transactionId], references: [id])
-}
-```
-
 ## Related Project
 
 This API serves the **financas-app** React Native mobile application located in `../financas-app/`. The mobile app consumes these API endpoints for all data operations.
 
 ---
 
-## Claude Code Pro Plan - Token Conservation Tips
+## Gemini Code Pro Plan - Token Conservation Tips
 
-To maximize your Claude Code Pro plan usage and conserve daily tokens:
+To maximize your Gemini Code Pro plan usage and conserve daily tokens:
 
 ### 🎯 Efficient File Operations
 

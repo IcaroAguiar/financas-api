@@ -145,4 +145,98 @@ router.put('/:id', transactionController.updateTransaction);
  */
 router.delete('/:id', transactionController.deleteTransaction);
 
+// Payment routes for installment transactions
+/**
+ * @swagger
+ * /api/transactions/{transactionId}/installments/{installmentId}/pay:
+ *   put:
+ *     summary: Mark a transaction installment as paid
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: transactionId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The transaction id
+ *       - in: path
+ *         name: installmentId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The installment id
+ *     responses:
+ *       200:
+ *         description: The installment was successfully marked as paid
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+router.put('/:transactionId/installments/:installmentId/pay', transactionController.markTransactionInstallmentPaid);
+
+/**
+ * @swagger
+ * /api/transactions/{transactionId}/pay:
+ *   put:
+ *     summary: Mark entire transaction as paid
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: transactionId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The transaction id
+ *     responses:
+ *       200:
+ *         description: The transaction was successfully marked as paid
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+router.put('/:transactionId/pay', transactionController.markTransactionPaid);
+
+/**
+ * @swagger
+ * /api/transactions/{transactionId}/partial-payment:
+ *   post:
+ *     summary: Register partial payment for transaction
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: transactionId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The transaction id
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 description: The partial payment amount
+ *             required:
+ *               - amount
+ *     responses:
+ *       200:
+ *         description: The partial payment was successfully registered
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ */
+router.post('/:transactionId/partial-payment', transactionController.registerPartialPayment);
+
 module.exports = router;

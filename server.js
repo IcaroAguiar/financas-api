@@ -13,9 +13,15 @@ const morgan = require("morgan");
 const userRoutes = require("./src/routes/userRoutes");
 const transactionRoutes = require('./src/routes/transactionRoutes');
 const categoryRoutes = require('./src/routes/categoryRoutes'); 
+const accountRoutes = require('./src/routes/accountRoutes');
+// const testRoutes = require('./src/routes/testRoutes');
 const debtorRoutes = require('./src/routes/debtorRoutes');
 const debtRoutes = require('./src/routes/debtRoutes');
 const paymentsRoutes = require('./src/routes/paymentsRoutes');
+const subscriptionRoutes = require('./src/routes/subscriptionRoutes');
+
+// Importa o processador de assinaturas
+const { startSubscriptionProcessor, startSubscriptionProcessorDev } = require('./src/jobs/subscriptionProcessor');
 
 // Cria uma instância do aplicativo express
 const app = express();
@@ -31,6 +37,8 @@ app.use(morgan('combined'));
 
 // Middleware para permitir que o express entenda requisições com corpo em JSON
 app.use(express.json());
+
+// Debug middleware removed
 
 // CORS middleware para permitir requisições do frontend
 app.use(cors({
@@ -52,9 +60,12 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use("/api/users", userRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/categories', categoryRoutes);
+app.use('/api/accounts', accountRoutes);
 app.use('/api/debtors', debtorRoutes);
 app.use('/api/debts', debtRoutes);
 app.use('/api/payments', paymentsRoutes);
+app.use('/api/subscriptions', subscriptionRoutes);
+
 
 // Middleware de tratamento de erros (deve vir por último)
 app.use((err, req, res, next) => {
@@ -91,4 +102,11 @@ app.use((req, res) => {
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor rodando na porta ${PORT}`);
   console.log(`Acesse em: http://192.168.0.24:${PORT}`);
+  
+  // Iniciar processador automático de assinaturas
+  if (process.env.NODE_ENV === 'development') {
+    startSubscriptionProcessorDev(); // Executa a cada 5 minutos em desenvolvimento
+  } else {
+    startSubscriptionProcessor(); // Executa a cada hora em produção
+  }
 });
