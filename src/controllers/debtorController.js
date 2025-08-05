@@ -1,51 +1,96 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require("../lib/prisma");
 
-// Listar todos os devedores
+// Listar todos os devedores do usuário logado
 const getAllDebtors = async (req, res) => {
   try {
-    const debtors = await prisma.debtor.findMany();
+    const userId = req.user.id; // ID do usuário logado vem do middleware de autenticação
+    
+    const debtors = await prisma.debtor.findMany({
+      where: { userId }, // FILTRO CRÍTICO: apenas devedores do usuário logado
+      include: {
+        debts: {
+          include: {
+            payments: true
+          }
+        }
+      }
+    });
+    
     res.json(debtors);
   } catch (err) {
+    console.error("Erro ao buscar devedores:", err);
     res.status(500).json({ error: 'Erro ao buscar devedores' });
   }
 };
 
-// Criar devedor
+// Criar devedor para o usuário logado
 const createDebtor = async (req, res) => {
   const { name, email, phone } = req.body;
+  const userId = req.user.id; // ID do usuário logado
+  
   try {
+    // Validação
+    if (!name) {
+      return res.status(400).json({ error: 'O nome do devedor é obrigatório.' });
+    }
+    
     const newDebtor = await prisma.debtor.create({
-      data: { name, email, phone },
+      data: { 
+        name, 
+        email, 
+        phone,
+        userId // CRÍTICO: associa o devedor ao usuário logado
+      },
     });
+    
     res.status(201).json(newDebtor);
   } catch (err) {
+    console.error("Erro ao criar devedor:", err);
     res.status(500).json({ error: 'Erro ao criar devedor' });
   }
 };
 
-// Atualizar devedor
+// Atualizar devedor (apenas se pertencer ao usuário logado)
 const updateDebtor = async (req, res) => {
   const { id } = req.params;
   const { name, email, phone } = req.body;
+  const userId = req.user.id;
+  
   try {
+    // Verificação de segurança: devedor pertence ao usuário?
+    const debtor = await prisma.debtor.findUnique({ where: { id } });
+    
+    if (!debtor) {
+      return res.status(404).json({ error: 'Devedor não encontrado.' });
+    }
+    
+    if (debtor.userId !== userId) {
+      return res.status(403).json({ error: 'Acesso negado. Você não pode modificar este devedor.' });
+    }
+    
     const updated = await prisma.debtor.update({
       where: { id },
       data: { name, email, phone },
     });
+    
     res.json(updated);
   } catch (err) {
+    console.error("Erro ao atualizar devedor:", err);
     res.status(500).json({ error: 'Erro ao atualizar devedor' });
   }
 };
 
-// Listar dívidas pelo ID do devedor
+// Listar dívidas pelo ID do devedor (apenas se o devedor pertencer ao usuário logado)
 const getDebtsByDebtorId = async (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id;
 
   try {
-    const debtor = await prisma.debtor.findUnique({
-      where: { id },
+    const debtor = await prisma.debtor.findFirst({
+      where: { 
+        id,
+        userId // FILTRO CRÍTICO: apenas se o devedor pertence ao usuário logado
+      },
       include: {
         debts: {
           include: {
@@ -61,17 +106,32 @@ const getDebtsByDebtorId = async (req, res) => {
 
     res.json(debtor.debts);
   } catch (err) {
+    console.error("Erro ao buscar dívidas do devedor:", err);
     res.status(500).json({ error: 'Erro ao buscar dívidas do devedor.' });
   }
 };
 
-// Deletar devedor
+// Deletar devedor (apenas se pertencer ao usuário logado)
 const deleteDebtor = async (req, res) => {
   const { id } = req.params;
+  const userId = req.user.id;
+  
   try {
+    // Verificação de segurança: devedor pertence ao usuário?
+    const debtor = await prisma.debtor.findUnique({ where: { id } });
+    
+    if (!debtor) {
+      return res.status(404).json({ error: 'Devedor não encontrado.' });
+    }
+    
+    if (debtor.userId !== userId) {
+      return res.status(403).json({ error: 'Acesso negado. Você não pode deletar este devedor.' });
+    }
+    
     await prisma.debtor.delete({ where: { id } });
     res.status(204).send();
   } catch (err) {
+    console.error("Erro ao deletar devedor:", err);
     res.status(500).json({ error: 'Erro ao deletar devedor' });
   }
 };

@@ -1,19 +1,27 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require("../lib/prisma");
 
-// Criar pagamento para uma dívida específica
+// Criar pagamento para uma dívida específica do usuário logado
 const createPayment = async (req, res) => {
   const { debtId } = req.params;
   const { amount, paymentDate, notes } = req.body;
+  const userId = req.user.id;
 
   try {
-    // Validar se a dívida existe
-    const debt = await prisma.debt.findUnique({
-      where: { id: debtId }
+    // VERIFICAÇÃO CRÍTICA: A dívida pertence ao usuário logado?
+    const debt = await prisma.debt.findFirst({
+      where: {
+        id: debtId,
+        debtor: {
+          userId // Só pode criar pagamento para dívidas cujos devedores são seus
+        }
+      },
+      include: {
+        debtor: true
+      }
     });
 
     if (!debt) {
-      return res.status(404).json({ error: 'Dívida não encontrada.' });
+      return res.status(404).json({ error: 'Dívida não encontrada ou não pertence a você.' });
     }
 
     // Validar campos obrigatórios
@@ -56,18 +64,24 @@ const createPayment = async (req, res) => {
   }
 };
 
-// Listar todos os pagamentos de uma dívida específica
+// Listar todos os pagamentos de uma dívida específica do usuário logado
 const getPaymentsByDebt = async (req, res) => {
   const { debtId } = req.params;
+  const userId = req.user.id;
 
   try {
-    // Verificar se a dívida existe
-    const debt = await prisma.debt.findUnique({
-      where: { id: debtId }
+    // VERIFICAÇÃO CRÍTICA: A dívida pertence ao usuário logado?
+    const debt = await prisma.debt.findFirst({
+      where: {
+        id: debtId,
+        debtor: {
+          userId // Só pode listar pagamentos de dívidas cujos devedores são seus
+        }
+      }
     });
 
     if (!debt) {
-      return res.status(404).json({ error: 'Dívida não encontrada.' });
+      return res.status(404).json({ error: 'Dívida não encontrada ou não pertence a você.' });
     }
 
     // Buscar pagamentos da dívida
@@ -92,18 +106,33 @@ const getPaymentsByDebt = async (req, res) => {
   }
 };
 
-// Deletar um pagamento específico
+// Deletar um pagamento específico do usuário logado
 const deletePayment = async (req, res) => {
   const { paymentId } = req.params;
+  const userId = req.user.id;
 
   try {
-    // Verificar se o pagamento existe
-    const payment = await prisma.payment.findUnique({
-      where: { id: paymentId }
+    // VERIFICAÇÃO CRÍTICA: O pagamento pertence ao usuário logado?
+    const payment = await prisma.payment.findFirst({
+      where: {
+        id: paymentId,
+        debt: {
+          debtor: {
+            userId // Só pode deletar pagamentos de dívidas cujos devedores são seus
+          }
+        }
+      },
+      include: {
+        debt: {
+          include: {
+            debtor: true
+          }
+        }
+      }
     });
 
     if (!payment) {
-      return res.status(404).json({ error: 'Pagamento não encontrado.' });
+      return res.status(404).json({ error: 'Pagamento não encontrado ou não pertence a você.' });
     }
 
     // Deletar o pagamento

@@ -1,5 +1,4 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require("../lib/prisma");
 
 // Utility function to calculate next payment date
 const calculateNextPaymentDate = (startDate, frequency, lastProcessedAt = null) => {
