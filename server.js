@@ -19,6 +19,7 @@ const debtorRoutes = require('./src/routes/debtorRoutes');
 const debtRoutes = require('./src/routes/debtRoutes');
 const paymentsRoutes = require('./src/routes/paymentsRoutes');
 const subscriptionRoutes = require('./src/routes/subscriptionRoutes');
+const healthRoutes = require('./src/routes/healthRoutes');
 
 // Importa o processador de assinaturas
 const { startSubscriptionProcessor, startSubscriptionProcessorDev } = require('./src/jobs/subscriptionProcessor');
@@ -65,6 +66,7 @@ app.use('/api/debtors', debtorRoutes);
 app.use('/api/debts', debtRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/subscriptions', subscriptionRoutes);
+app.use('/api', healthRoutes);
 
 
 // Middleware de tratamento de erros (deve vir por último)
