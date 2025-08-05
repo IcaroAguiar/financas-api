@@ -24,7 +24,7 @@ model Account {
   id            String         @id @default(uuid())
   name          String
   type          String
-  balance       Float?         @default(0.0)
+  balance       Int?           @default(0) // Changed to Int (cents)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   userId        String
@@ -52,7 +52,7 @@ model Category {
 model Transaction {
   id             String          @id @default(uuid())
   description    String
-  amount         Float
+  amount         Int             // Changed to Int (cents)
   date           DateTime
   type           TransactionType
   isRecurring    Boolean         @default(false)
@@ -67,7 +67,7 @@ model Transaction {
   isInstallmentPlan         Boolean                 @default(false)
   installmentCount          Int?
   installmentFrequency      InstallmentFrequency?
-  installmentAmount         Float?
+  installmentAmount         Int?                    // Changed to Int (cents)
   firstInstallmentDate      DateTime?
   
   category       Category?       @relation(fields: [categoryId], references: [id])
@@ -90,7 +90,7 @@ model Debtor {
 model Debt {
   id            String     @id @default(uuid())
   description   String
-  totalAmount   Float
+  totalAmount   Int        // Changed to Int (cents)
   dueDate       DateTime
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
@@ -101,7 +101,7 @@ model Debt {
   isInstallment         Boolean                 @default(false)
   installmentCount      Int?
   installmentFrequency  InstallmentFrequency?
-  installmentAmount     Float?
+  installmentAmount     Int?                    // Changed to Int (cents)
   
   debtor        Debtor     @relation(fields: [debtorId], references: [id], onDelete: Cascade)
   payments      Payment[]
@@ -110,7 +110,7 @@ model Debt {
 
 model Payment {
   id          String   @id @default(uuid())
-  amount      Float
+  amount      Int      // Changed to Int (cents)
   paymentDate DateTime @default(now())
   notes       String?
   createdAt   DateTime @default(now())
@@ -122,7 +122,7 @@ model Payment {
 model Installment {
   id                String            @id @default(uuid())
   installmentNumber Int
-  amount            Float
+  amount            Int               // Changed to Int (cents)
   dueDate           DateTime
   paidDate          DateTime?
   status            InstallmentStatus @default(PENDENTE)
@@ -135,7 +135,7 @@ model Installment {
 model TransactionInstallment {
   id                String            @id @default(uuid())
   installmentNumber Int
-  amount            Float
+  amount            Int               // Changed to Int (cents)
   dueDate           DateTime
   paidDate          DateTime?
   status            InstallmentStatus @default(PENDENTE)
@@ -149,7 +149,7 @@ model Subscription {
   id              String                @id @default(uuid())
   name            String
   description     String?
-  amount          Float
+  amount          Int                   // Changed to Int (cents)
   type            TransactionType
   frequency       SubscriptionFrequency
   startDate       DateTime
