@@ -43,7 +43,7 @@ app.use(express.json());
 
 // CORS middleware para permitir requisições do frontend
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:8081', 'http://localhost:8082', 'exp://192.168.0.*:8081', 'exp://192.168.0.*:8082', 'exp://192.168.1.*:8081', 'exp://192.168.1.*:8082', 'exp://*'],
+  origin: ['http://localhost:3000', 'http://localhost:8081', 'http://localhost:8082', 'http://localhost:8090', 'exp://192.168.0.*:8081', 'exp://192.168.0.*:8082', 'exp://192.168.0.*:8090', 'exp://192.168.1.*:8081', 'exp://192.168.1.*:8082', 'exp://192.168.1.*:8090', 'exp://*'],
   credentials: true
 }));
 
