@@ -49,7 +49,12 @@ app.use(cors({
 
 // Rota de teste para verificar se o servidor está funcionando
 app.get("/", (req, res) => {
-  res.send("API de Finanças está no ar!");
+  res.json({ 
+    message: "API de Finanças está no ar!", 
+    version: "1.0.1",
+    timestamp: new Date().toISOString(),
+    status: "healthy"
+  });
 });
 
 const swaggerUi = require('swagger-ui-express');
