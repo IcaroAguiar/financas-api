@@ -51,7 +51,7 @@ app.use(cors({
 app.get("/", (req, res) => {
   res.json({ 
     message: "API de Finanças está no ar!", 
-    version: "1.0.1",
+    version: "1.1.0",
     timestamp: new Date().toISOString(),
     status: "healthy"
   });
