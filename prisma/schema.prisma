@@ -177,6 +177,7 @@ model Subscription {
 enum TransactionType {
   RECEITA
   DESPESA
+  PAGO
 }
 
 enum SubscriptionFrequency {

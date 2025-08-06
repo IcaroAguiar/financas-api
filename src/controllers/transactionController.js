@@ -34,10 +34,10 @@ const createTransaction = async (req, res) => {
         });
     }
 
-    if (type !== TransactionType.RECEITA && type !== TransactionType.DESPESA) {
+    if (type !== TransactionType.RECEITA && type !== TransactionType.DESPESA && type !== TransactionType.PAGO) {
       return res
         .status(400)
-        .json({ error: "O tipo da transação deve ser RECEITA ou DESPESA." });
+        .json({ error: "O tipo da transação deve ser RECEITA, DESPESA ou PAGO." });
     }
 
     // Validação adicional para accountId se fornecido
@@ -215,15 +215,29 @@ const createTransaction = async (req, res) => {
 // --- LISTAR TODAS AS TRANSAÇÕES DO USUÁRIO (READ) ---
 const getAllTransactions = async (req, res) => {
   try {
-    const userId = req.user.id;
+    console.error("🔍 CONTROLLER: getAllTransactions called");
+    
+    const userId = req.user?.id;
+    console.error("🔍 CONTROLLER: userId =", userId);
+    
+    // Check if user is properly authenticated
+    if (!userId) {
+      console.error("❌ CONTROLLER: No userId found");
+      return res.status(401).json({ error: "Usuário não autenticado." });
+    }
+    
     const { accountId } = req.query; // Filtro opcional por conta
+    console.error("🔍 CONTROLLER: accountId =", accountId);
 
     // Constrói o filtro de busca
     const whereClause = { userId };
     if (accountId) {
       whereClause.accountId = accountId;
     }
+    
+    console.error("🔍 CONTROLLER: whereClause =", whereClause);
 
+    console.error("🔍 CONTROLLER: About to call prisma.transaction.findMany");
     const transactions = await prisma.transaction.findMany({
       where: whereClause,
       orderBy: { date: "desc" }, // Ordena da mais recente para a mais antiga
@@ -236,8 +250,11 @@ const getAllTransactions = async (req, res) => {
       },
     });
 
+    console.error("🔍 CONTROLLER: Found transactions:", transactions.length);
     res.status(200).json(transactions);
   } catch (error) {
+    console.error("❌ CONTROLLER ERROR:", error.message);
+    console.error("❌ CONTROLLER ERROR STACK:", error.stack);
     console.error("Erro ao listar transações:", error);
     res.status(500).json({ error: "Não foi possível listar as transações." });
   }
@@ -343,7 +360,7 @@ const getFinancialSummary = async (req, res) => {
     const totalIncome = await prisma.transaction.aggregate({
       where: { 
         userId, 
-        type: TransactionType.RECEBIMENTO 
+        type: TransactionType.RECEITA 
       },
       _sum: { amount: true }
     });
@@ -373,7 +390,7 @@ const getFinancialSummary = async (req, res) => {
     const monthlyIncome = await prisma.transaction.aggregate({
       where: { 
         userId,
-        type: TransactionType.RECEBIMENTO,
+        type: TransactionType.RECEITA,
         date: {
           gte: startOfMonth,
           lte: endOfMonth
@@ -494,6 +511,20 @@ const markTransactionPaid = async (req, res) => {
           status: 'PAGO',
           paidDate: new Date()
         }
+      });
+    }
+
+    // Change transaction type from DESPESA to PAGO when marking as paid
+    let updateData = {};
+    if (transaction.type === 'DESPESA') {
+      updateData.type = 'PAGO';
+    }
+
+    // Update transaction type if needed
+    if (Object.keys(updateData).length > 0) {
+      await prisma.transaction.update({
+        where: { id: transactionId },
+        data: updateData
       });
     }
 
