@@ -18,7 +18,9 @@ const getAllDebtors = async (req, res) => {
     
     res.json(debtors);
   } catch (err) {
-    console.error("Erro ao buscar devedores:", err);
+    console.error("❌ DETAILED ERROR in getAllDebtors:", err.message);
+    console.error("❌ ERROR STACK:", err.stack);
+    console.error("❌ USER ID:", req.user?.id);
     res.status(500).json({ error: 'Erro ao buscar devedores' });
   }
 };

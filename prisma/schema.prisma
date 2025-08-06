@@ -23,6 +23,7 @@ model User {
   transactions  Transaction[]
   accounts      Account[]
   subscriptions Subscription[]
+  debtors       Debtor[]
 }
 
 model Account {
@@ -89,6 +90,8 @@ model Debtor {
   phone     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   debts     Debt[]
 }
 

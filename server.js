@@ -117,3 +117,4 @@ app.listen(PORT, '0.0.0.0', () => {
     startSubscriptionProcessor(); // Executa a cada hora em produção
   }
 });
+
