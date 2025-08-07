@@ -247,6 +247,43 @@ const verifyResetToken = async (req, res) => {
   }
 };
 
+// Função para verificar senha do usuário autenticado (para configuração biométrica)
+const verifyPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const userId = req.user?.id; // Vem do middleware de autenticação
+
+    if (!password) {
+      return res.status(400).json({ error: "Senha é obrigatória." });
+    }
+
+    // Busca o usuário atual
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+
+    // Verifica se a senha está correta
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      return res.status(400).json({ error: "Senha incorreta." });
+    }
+
+    res.status(200).json({ 
+      message: "Senha verificada com sucesso.",
+      verified: true
+    });
+
+  } catch (error) {
+    console.error("Erro ao verificar senha:", error);
+    res.status(500).json({ error: "Não foi possível verificar a senha." });
+  }
+};
+
 module.exports = {
   createUser,
   loginUser,
@@ -254,5 +291,6 @@ module.exports = {
   requestPasswordReset,
   resetPassword,
   verifyResetToken,
+  verifyPassword,
 };
 

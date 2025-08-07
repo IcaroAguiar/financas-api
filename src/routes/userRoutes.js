@@ -174,6 +174,37 @@ router.post("/reset-password", userController.resetPassword);
  */
 router.get("/verify-reset-token/:token", userController.verifyResetToken);
 
+/**
+ * @swagger
+ * /api/users/verify-password:
+ *   post:
+ *     summary: Verify current user's password
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               password:
+ *                 type: string
+ *             required:
+ *               - password
+ *     responses:
+ *       200:
+ *         description: Password verified successfully
+ *       400:
+ *         description: Invalid password or missing password
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Internal server error
+ */
+router.post("/verify-password", authMiddleware, userController.verifyPassword);
+
 // Exporta o roteador
 module.exports = router;
 
