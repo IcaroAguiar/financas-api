@@ -110,31 +110,19 @@ app.post("/emergency-db-reset", async (req, res) => {
     await pool.end();
     console.log("✅ All tables dropped via raw SQL");
     
-    // Step 2: Deploy migrations from scratch
-    console.log("🔄 Deploying migrations...");
+    // Step 2: Apply comprehensive fix using our proven script
+    console.log("🔄 Applying comprehensive database fix...");
     const { exec } = require('child_process');
     
-    const migrationResult = await new Promise((resolve) => {
-      exec('npx prisma migrate deploy', (error, stdout, stderr) => {
-        console.log("Migration stdout:", stdout);
-        if (stderr) console.log("Migration stderr:", stderr);
+    const comprehensiveFixResult = await new Promise((resolve) => {
+      exec('npx prisma db push --force-reset --accept-data-loss && npx prisma generate', (error, stdout, stderr) => {
+        console.log("Comprehensive fix stdout:", stdout);
+        if (stderr) console.log("Comprehensive fix stderr:", stderr);
         resolve({ error, stdout, stderr, success: !error });
       });
     });
     
-    console.log("Migration result:", migrationResult.success ? "SUCCESS" : "FAILED");
-    
-    // Step 3: Generate new Prisma client
-    console.log("🔄 Generating fresh Prisma client...");
-    const generateResult = await new Promise((resolve) => {
-      exec('npx prisma generate', (error, stdout, stderr) => {
-        console.log("Generate stdout:", stdout);
-        if (stderr) console.log("Generate stderr:", stderr);
-        resolve({ error, stdout, stderr, success: !error });
-      });
-    });
-    
-    console.log("Generate result:", generateResult.success ? "SUCCESS" : "FAILED");
+    console.log("Comprehensive fix result:", comprehensiveFixResult.success ? "SUCCESS" : "FAILED");
     
     // Step 4: Create test data with fresh Prisma client
     console.log("👤 Creating test data for testers...");
