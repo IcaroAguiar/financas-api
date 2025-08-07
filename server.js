@@ -58,7 +58,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// TEMPORARY: Production database reset endpoint (REMOVE AFTER USE)
+// TEMPORARY: Complete database schema reset endpoint (REMOVE AFTER USE)
 app.post("/emergency-db-reset", async (req, res) => {
   if (process.env.NODE_ENV !== 'production') {
     return res.status(403).json({ error: 'Only available in production' });
@@ -66,73 +66,116 @@ app.post("/emergency-db-reset", async (req, res) => {
   
   try {
     const { PrismaClient } = require("@prisma/client");
+    const { exec } = require('child_process');
+    
+    console.log("🚨 COMPLETE DATABASE SCHEMA RESET INITIATED");
+    console.log("⚠️  This will DROP ALL TABLES and recreate from scratch!");
+    
+    // Step 1: Drop all tables using raw SQL
+    console.log("🗑️  Dropping all tables...");
     const prisma = new PrismaClient();
     
-    console.log("🚨 EMERGENCY DATABASE RESET INITIATED");
-    
-    // Delete all data in correct order
-    await prisma.payment.deleteMany();
-    await prisma.installment.deleteMany();
-    await prisma.transactionInstallment.deleteMany();
-    await prisma.debt.deleteMany();
-    await prisma.debtor.deleteMany();
-    await prisma.transaction.deleteMany();
-    await prisma.subscription.deleteMany();
-    await prisma.account.deleteMany();
-    await prisma.category.deleteMany();
-    await prisma.user.deleteMany();
-    
-    console.log("✅ All data deleted");
-    
-    // Run database migration first to ensure schema is correct
-    console.log("🔄 Running database migrations...");
-    const { exec } = require('child_process');
-    await new Promise((resolve, reject) => {
-      exec('npx prisma migrate deploy', (error, stdout, stderr) => {
-        if (error) {
-          console.log("❌ Migration error (continuing anyway):", error.message);
+    try {
+      // Drop tables in reverse dependency order to avoid foreign key constraints
+      const dropTables = [
+        'DROP TABLE IF EXISTS "Payment" CASCADE',
+        'DROP TABLE IF EXISTS "Installment" CASCADE', 
+        'DROP TABLE IF EXISTS "TransactionInstallment" CASCADE',
+        'DROP TABLE IF EXISTS "Debt" CASCADE',
+        'DROP TABLE IF EXISTS "Debtor" CASCADE',
+        'DROP TABLE IF EXISTS "Transaction" CASCADE',
+        'DROP TABLE IF EXISTS "Subscription" CASCADE',
+        'DROP TABLE IF EXISTS "Account" CASCADE',
+        'DROP TABLE IF EXISTS "Category" CASCADE',
+        'DROP TABLE IF EXISTS "User" CASCADE',
+        'DROP TABLE IF EXISTS "_prisma_migrations" CASCADE'
+      ];
+      
+      for (const dropSql of dropTables) {
+        try {
+          await prisma.$executeRawUnsafe(dropSql);
+          console.log(`✅ Executed: ${dropSql}`);
+        } catch (error) {
+          console.log(`⚠️  ${dropSql} - ${error.message}`);
         }
-        console.log("Migration output:", stdout);
+      }
+      
+      await prisma.$disconnect();
+      console.log("✅ All tables dropped");
+      
+    } catch (error) {
+      console.log("❌ Error during table dropping:", error.message);
+      await prisma.$disconnect();
+    }
+    
+    // Step 2: Deploy all migrations from scratch
+    console.log("🔄 Deploying all migrations from scratch...");
+    const migrationResult = await new Promise((resolve) => {
+      exec('npx prisma migrate deploy --schema=./prisma/schema.prisma', (error, stdout, stderr) => {
+        console.log("Migration stdout:", stdout);
         if (stderr) console.log("Migration stderr:", stderr);
-        resolve();
+        if (error) {
+          console.log("Migration error:", error.message);
+        }
+        resolve({ error, stdout, stderr });
       });
     });
     
-    // Create test user (only basic required fields)
-    const testUser = await prisma.user.create({
+    // Step 3: Generate fresh Prisma client
+    console.log("🔄 Generating fresh Prisma client...");
+    const generateResult = await new Promise((resolve) => {
+      exec('npx prisma generate', (error, stdout, stderr) => {
+        console.log("Generate stdout:", stdout);
+        if (stderr) console.log("Generate stderr:", stderr);
+        if (error) {
+          console.log("Generate error:", error.message);
+        }
+        resolve({ error, stdout, stderr });
+      });
+    });
+    
+    // Step 4: Create fresh Prisma client instance and test data
+    console.log("👤 Creating fresh test data...");
+    const newPrisma = new PrismaClient();
+    
+    // Create test user
+    const testUser = await newPrisma.user.create({
       data: {
         name: "Production Test User",
-        email: "prod.test@example.com",
+        email: "prod.test@example.com", 
         password: "$2b$10$rQ8K8wGjFjKdUZzqfqzqHeKoOYj7J7YgZRjXj.pJ7Ks5lXKJF3lR6" // "123456"
       }
     });
+    console.log(`✅ Test user created: ${testUser.email}`);
     
-    // Create test account
-    const testAccount = await prisma.account.create({
+    // Create test account  
+    const testAccount = await newPrisma.account.create({
       data: {
         name: "Test Account",
-        type: "CORRENTE",
-        balance: 0,
+        type: "CORRENTE", 
+        balance: 10000, // R$ 100,00
         userId: testUser.id
       }
     });
+    console.log(`✅ Test account created: ${testAccount.name}`);
     
     // Create test category
-    const testCategory = await prisma.category.create({
+    const testCategory = await newPrisma.category.create({
       data: {
         name: "Test Category",
         color: "#007BFF",
         userId: testUser.id
       }
     });
+    console.log(`✅ Test category created: ${testCategory.name}`);
     
-    // Create test transaction
-    const testTransaction = await prisma.transaction.create({
+    // Create test transaction with account relationship
+    const testTransaction = await newPrisma.transaction.create({
       data: {
-        description: "Test Transaction",
-        amount: 10000,
+        description: "Test Transaction with Account",
+        amount: 5000, // R$ 50,00
         date: new Date(),
-        type: "RECEITA",
+        type: "RECEITA", 
         userId: testUser.id,
         categoryId: testCategory.id,
         accountId: testAccount.id,
@@ -140,27 +183,42 @@ app.post("/emergency-db-reset", async (req, res) => {
       },
       include: {
         account: true,
-        category: true
+        category: true,
+        installments: true
       }
     });
+    console.log(`✅ Test transaction created: ${testTransaction.description}`);
+    console.log(`   Account relationship: ${testTransaction.account ? testTransaction.account.name : 'None'}`);
     
-    await prisma.$disconnect();
+    await newPrisma.$disconnect();
     
-    console.log("✅ Database reset completed with test data");
+    console.log("🎉 COMPLETE DATABASE RESET SUCCESS!");
     
     res.json({
       status: "success",
-      message: "Database reset completed",
-      testUser: { email: testUser.email, id: testUser.id },
-      testTransaction: { id: testTransaction.id, hasAccount: !!testTransaction.account }
+      message: "Complete database schema reset completed",
+      summary: {
+        tablesDropped: "All tables dropped and recreated",
+        migrationsApplied: !!migrationResult.stdout,
+        clientRegenerated: !!generateResult.stdout,
+        testUser: { email: testUser.email, id: testUser.id },
+        testAccount: { name: testAccount.name, id: testAccount.id },
+        testTransaction: { 
+          id: testTransaction.id, 
+          description: testTransaction.description,
+          hasAccount: !!testTransaction.account,
+          accountName: testTransaction.account?.name 
+        }
+      }
     });
     
   } catch (error) {
-    console.error("❌ Database reset error:", error);
+    console.error("❌ COMPLETE RESET FAILED:", error);
     res.status(500).json({
       status: "error",
       message: error.message,
-      code: error.code
+      code: error.code,
+      stack: error.stack
     });
   }
 });
