@@ -5,8 +5,8 @@
    "scripts": {
     "test": "node src/tests/health.test.js",
     "dev": "nodemon server.js",
-    "start": "node server.js",
-    "render-build": "npm install && npx prisma migrate deploy"
+    "start": "npx prisma migrate deploy && npx prisma generate && node server.js",
+    "render-build": "npm install && npx prisma migrate deploy && npx prisma generate"
   },
   "keywords": [],
   "author": "",
