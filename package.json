@@ -5,9 +5,9 @@
    "scripts": {
     "test": "node src/tests/health.test.js",
     "dev": "npx prisma generate && nodemon server.js",
-    "start": "npx prisma migrate deploy && npx prisma generate && node server.js",
+    "start": "echo 'Starting production server...' && npx prisma migrate deploy && echo 'Migrations complete' && npx prisma generate && echo 'Prisma client generated' && node server.js",
     "render-build": "npm install && npx prisma migrate deploy && npx prisma generate",
-    "postinstall": "npx prisma generate"
+    "postinstall": "echo 'Post-install: cleaning and regenerating Prisma client' && rm -rf node_modules/.prisma && npx prisma generate"
   },
   "keywords": [],
   "author": "",
