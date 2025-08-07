@@ -6,7 +6,7 @@
     "test": "node src/tests/health.test.js",
     "dev": "npx prisma generate && nodemon server.js",
     "start": "echo 'Starting production server...' && npx prisma generate && echo 'Prisma client ready' && node server.js",
-    "render-build": "npm install && (npx prisma db push --force-reset || node fix-production.js) && npx prisma generate",
+    "render-build": "npm install && npx prisma db push --force-reset --accept-data-loss && npx prisma generate",
     "postinstall": "echo 'Post-install: cleaning and regenerating Prisma client' && rm -rf node_modules/.prisma && npx prisma generate"
   },
   "keywords": [],
