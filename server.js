@@ -58,157 +58,169 @@ app.get("/", (req, res) => {
   });
 });
 
-// TEMPORARY: Complete database schema reset endpoint (REMOVE AFTER USE)
+// CRITICAL: Raw SQL database reset for testers (REMOVE AFTER USE)
 app.post("/emergency-db-reset", async (req, res) => {
   if (process.env.NODE_ENV !== 'production') {
     return res.status(403).json({ error: 'Only available in production' });
   }
   
   try {
-    const { PrismaClient } = require("@prisma/client");
-    const { exec } = require('child_process');
+    console.log("🚨 CRITICAL PRODUCTION FIX FOR TESTERS INITIATED");
+    console.log("⚠️  Raw SQL database reset - bypassing Prisma for drops");
     
-    console.log("🚨 COMPLETE DATABASE SCHEMA RESET INITIATED");
-    console.log("⚠️  This will DROP ALL TABLES and recreate from scratch!");
+    // Use raw PostgreSQL connection to avoid Prisma schema conflicts
+    const { Pool } = require('pg');
     
-    // Step 1: Drop all tables using raw SQL
-    console.log("🗑️  Dropping all tables...");
-    const prisma = new PrismaClient();
-    
-    try {
-      // Drop tables in reverse dependency order to avoid foreign key constraints
-      const dropTables = [
-        'DROP TABLE IF EXISTS "Payment" CASCADE',
-        'DROP TABLE IF EXISTS "Installment" CASCADE', 
-        'DROP TABLE IF EXISTS "TransactionInstallment" CASCADE',
-        'DROP TABLE IF EXISTS "Debt" CASCADE',
-        'DROP TABLE IF EXISTS "Debtor" CASCADE',
-        'DROP TABLE IF EXISTS "Transaction" CASCADE',
-        'DROP TABLE IF EXISTS "Subscription" CASCADE',
-        'DROP TABLE IF EXISTS "Account" CASCADE',
-        'DROP TABLE IF EXISTS "Category" CASCADE',
-        'DROP TABLE IF EXISTS "User" CASCADE',
-        'DROP TABLE IF EXISTS "_prisma_migrations" CASCADE'
-      ];
-      
-      for (const dropSql of dropTables) {
-        try {
-          await prisma.$executeRawUnsafe(dropSql);
-          console.log(`✅ Executed: ${dropSql}`);
-        } catch (error) {
-          console.log(`⚠️  ${dropSql} - ${error.message}`);
-        }
+    // Create direct PostgreSQL connection
+    const pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_URL.includes('localhost') ? false : {
+        rejectUnauthorized: false
       }
-      
-      await prisma.$disconnect();
-      console.log("✅ All tables dropped");
-      
-    } catch (error) {
-      console.log("❌ Error during table dropping:", error.message);
-      await prisma.$disconnect();
+    });
+    
+    console.log("🔗 Connected directly to PostgreSQL");
+    
+    // Step 1: Drop all tables using raw PostgreSQL
+    console.log("🗑️  Dropping all tables with raw SQL...");
+    
+    const dropCommands = [
+      'DROP TABLE IF EXISTS "Payment" CASCADE;',
+      'DROP TABLE IF EXISTS "Installment" CASCADE;', 
+      'DROP TABLE IF EXISTS "TransactionInstallment" CASCADE;',
+      'DROP TABLE IF EXISTS "Debt" CASCADE;',
+      'DROP TABLE IF EXISTS "Debtor" CASCADE;',
+      'DROP TABLE IF EXISTS "Transaction" CASCADE;',
+      'DROP TABLE IF EXISTS "Subscription" CASCADE;',
+      'DROP TABLE IF EXISTS "Account" CASCADE;',
+      'DROP TABLE IF EXISTS "Category" CASCADE;',
+      'DROP TABLE IF EXISTS "User" CASCADE;',
+      'DROP TABLE IF EXISTS "_prisma_migrations" CASCADE;'
+    ];
+    
+    for (const dropSql of dropCommands) {
+      try {
+        await pool.query(dropSql);
+        console.log(`✅ Executed: ${dropSql}`);
+      } catch (error) {
+        console.log(`⚠️  ${dropSql} - ${error.message}`);
+      }
     }
     
-    // Step 2: Deploy all migrations from scratch
-    console.log("🔄 Deploying all migrations from scratch...");
+    await pool.end();
+    console.log("✅ All tables dropped via raw SQL");
+    
+    // Step 2: Deploy migrations from scratch
+    console.log("🔄 Deploying migrations...");
+    const { exec } = require('child_process');
+    
     const migrationResult = await new Promise((resolve) => {
-      exec('npx prisma migrate deploy --schema=./prisma/schema.prisma', (error, stdout, stderr) => {
+      exec('npx prisma migrate deploy', (error, stdout, stderr) => {
         console.log("Migration stdout:", stdout);
         if (stderr) console.log("Migration stderr:", stderr);
-        if (error) {
-          console.log("Migration error:", error.message);
-        }
-        resolve({ error, stdout, stderr });
+        resolve({ error, stdout, stderr, success: !error });
       });
     });
     
-    // Step 3: Generate fresh Prisma client
+    console.log("Migration result:", migrationResult.success ? "SUCCESS" : "FAILED");
+    
+    // Step 3: Generate new Prisma client
     console.log("🔄 Generating fresh Prisma client...");
     const generateResult = await new Promise((resolve) => {
       exec('npx prisma generate', (error, stdout, stderr) => {
         console.log("Generate stdout:", stdout);
         if (stderr) console.log("Generate stderr:", stderr);
-        if (error) {
-          console.log("Generate error:", error.message);
-        }
-        resolve({ error, stdout, stderr });
+        resolve({ error, stdout, stderr, success: !error });
       });
     });
     
-    // Step 4: Create fresh Prisma client instance and test data
-    console.log("👤 Creating fresh test data...");
-    const newPrisma = new PrismaClient();
+    console.log("Generate result:", generateResult.success ? "SUCCESS" : "FAILED");
     
-    // Create test user
-    const testUser = await newPrisma.user.create({
+    // Step 4: Create test data with fresh Prisma client
+    console.log("👤 Creating test data for testers...");
+    
+    // Import fresh Prisma client
+    delete require.cache[require.resolve('@prisma/client')];
+    const { PrismaClient } = require("@prisma/client");
+    const testPrisma = new PrismaClient();
+    
+    // Create comprehensive test data for testers
+    const testUser = await testPrisma.user.create({
       data: {
-        name: "Production Test User",
-        email: "prod.test@example.com", 
-        password: "$2b$10$rQ8K8wGjFjKdUZzqfqzqHeKoOYj7J7YgZRjXj.pJ7Ks5lXKJF3lR6" // "123456"
+        name: "Tester User",
+        email: "tester@financas.app", 
+        password: "$2b$10$rQ8K8wGjFjKdUZzqfqzqHeKoOYj7J7YgZRjXj.pJ7Ks5lXKJF3lR6" // password: "123456"
       }
     });
-    console.log(`✅ Test user created: ${testUser.email}`);
     
-    // Create test account  
-    const testAccount = await newPrisma.account.create({
+    const testAccount = await testPrisma.account.create({
       data: {
-        name: "Test Account",
+        name: "Conta Corrente",
         type: "CORRENTE", 
-        balance: 10000, // R$ 100,00
+        balance: 150000, // R$ 1500,00
         userId: testUser.id
       }
     });
-    console.log(`✅ Test account created: ${testAccount.name}`);
     
-    // Create test category
-    const testCategory = await newPrisma.category.create({
+    const testCategory = await testPrisma.category.create({
       data: {
-        name: "Test Category",
-        color: "#007BFF",
+        name: "Alimentação",
+        color: "#FF6B6B",
         userId: testUser.id
       }
     });
-    console.log(`✅ Test category created: ${testCategory.name}`);
     
-    // Create test transaction with account relationship
-    const testTransaction = await newPrisma.transaction.create({
-      data: {
-        description: "Test Transaction with Account",
-        amount: 5000, // R$ 50,00
-        date: new Date(),
-        type: "RECEITA", 
-        userId: testUser.id,
-        categoryId: testCategory.id,
-        accountId: testAccount.id,
-        isRecurring: false
-      },
-      include: {
-        account: true,
-        category: true,
-        installments: true
-      }
-    });
-    console.log(`✅ Test transaction created: ${testTransaction.description}`);
-    console.log(`   Account relationship: ${testTransaction.account ? testTransaction.account.name : 'None'}`);
+    // Create multiple test transactions
+    const transactions = [];
     
-    await newPrisma.$disconnect();
+    for (let i = 0; i < 5; i++) {
+      const transaction = await testPrisma.transaction.create({
+        data: {
+          description: `Transação Teste ${i + 1}`,
+          amount: Math.floor(Math.random() * 10000) + 1000, // R$ 10,00 - R$ 100,00
+          date: new Date(Date.now() - Math.floor(Math.random() * 30) * 24 * 60 * 60 * 1000), // Random date within last 30 days
+          type: i % 2 === 0 ? "RECEITA" : "DESPESA", 
+          userId: testUser.id,
+          categoryId: testCategory.id,
+          accountId: testAccount.id,
+          isRecurring: false
+        },
+        include: {
+          account: true,
+          category: true
+        }
+      });
+      transactions.push(transaction);
+    }
     
-    console.log("🎉 COMPLETE DATABASE RESET SUCCESS!");
+    await testPrisma.$disconnect();
+    
+    console.log("🎉 PRODUCTION API READY FOR TESTERS!");
+    console.log(`📧 Test User: ${testUser.email} | Password: 123456`);
+    console.log(`💰 Test Account: ${testAccount.name} | Balance: R$ ${(testAccount.balance / 100).toFixed(2)}`);
+    console.log(`📊 Created ${transactions.length} test transactions with account relationships`);
     
     res.json({
-      status: "success",
-      message: "Complete database schema reset completed",
-      summary: {
-        tablesDropped: "All tables dropped and recreated",
-        migrationsApplied: !!migrationResult.stdout,
-        clientRegenerated: !!generateResult.stdout,
-        testUser: { email: testUser.email, id: testUser.id },
-        testAccount: { name: testAccount.name, id: testAccount.id },
-        testTransaction: { 
-          id: testTransaction.id, 
-          description: testTransaction.description,
-          hasAccount: !!testTransaction.account,
-          accountName: testTransaction.account?.name 
-        }
+      status: "success", 
+      message: "Production API normalized for testers",
+      testData: {
+        user: {
+          email: testUser.email,
+          password: "123456",
+          id: testUser.id
+        },
+        account: {
+          name: testAccount.name,
+          balance: testAccount.balance,
+          id: testAccount.id
+        },
+        category: {
+          name: testCategory.name,
+          color: testCategory.color,
+          id: testCategory.id
+        },
+        transactions: transactions.length,
+        allTransactionsHaveAccount: transactions.every(t => !!t.account)
       }
     });
     
