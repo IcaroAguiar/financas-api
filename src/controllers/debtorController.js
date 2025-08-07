@@ -47,7 +47,10 @@ const createDebtor = async (req, res) => {
     
     res.status(201).json(newDebtor);
   } catch (err) {
-    console.error("Erro ao criar devedor:", err);
+    console.error("❌ DETAILED CREATE ERROR:", err.message);
+    console.error("❌ ERROR STACK:", err.stack);
+    console.error("❌ USER ID:", userId);
+    console.error("❌ REQUEST BODY:", req.body);
     res.status(500).json({ error: 'Erro ao criar devedor' });
   }
 };
