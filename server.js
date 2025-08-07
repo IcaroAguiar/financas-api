@@ -124,11 +124,23 @@ app.post("/emergency-db-reset", async (req, res) => {
     
     console.log("Comprehensive fix result:", comprehensiveFixResult.success ? "SUCCESS" : "FAILED");
     
+    // Step 3: Force complete Prisma client refresh
+    console.log("🔄 Forcing complete Prisma client refresh...");
+    
+    // Clear all Prisma-related caches
+    Object.keys(require.cache).forEach(key => {
+      if (key.includes('prisma') || key.includes('@prisma')) {
+        delete require.cache[key];
+      }
+    });
+    
+    // Wait a moment for the schema sync to complete
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    
     // Step 4: Create test data with fresh Prisma client
     console.log("👤 Creating test data for testers...");
     
-    // Import fresh Prisma client
-    delete require.cache[require.resolve('@prisma/client')];
+    // Import completely fresh Prisma client after cache clear
     const { PrismaClient } = require("@prisma/client");
     const testPrisma = new PrismaClient();
     
