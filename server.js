@@ -84,7 +84,21 @@ app.post("/emergency-db-reset", async (req, res) => {
     
     console.log("✅ All data deleted");
     
-    // Create test user
+    // Run database migration first to ensure schema is correct
+    console.log("🔄 Running database migrations...");
+    const { exec } = require('child_process');
+    await new Promise((resolve, reject) => {
+      exec('npx prisma migrate deploy', (error, stdout, stderr) => {
+        if (error) {
+          console.log("❌ Migration error (continuing anyway):", error.message);
+        }
+        console.log("Migration output:", stdout);
+        if (stderr) console.log("Migration stderr:", stderr);
+        resolve();
+      });
+    });
+    
+    // Create test user (only basic required fields)
     const testUser = await prisma.user.create({
       data: {
         name: "Production Test User",
