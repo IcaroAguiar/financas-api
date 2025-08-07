@@ -6,7 +6,7 @@
     "test": "node src/tests/health.test.js",
     "dev": "npx prisma generate && nodemon server.js",
     "start": "echo 'Starting production server...' && npx prisma migrate deploy && echo 'Migrations complete' && npx prisma generate && echo 'Prisma client generated' && node server.js",
-    "render-build": "npm install && npx prisma migrate deploy && npx prisma generate",
+    "render-build": "npm install && npx prisma migrate resolve --rolled-back 20250706222113_add_transactions_and_categories && npx prisma migrate reset --force --skip-generate && npx prisma migrate deploy && npx prisma generate",
     "postinstall": "echo 'Post-install: cleaning and regenerating Prisma client' && rm -rf node_modules/.prisma && npx prisma generate"
   },
   "keywords": [],
