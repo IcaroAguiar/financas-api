@@ -105,16 +105,21 @@ app.use((req, res) => {
   });
 });
 
-// Inicia o servidor e o faz escutar na porta definida em todas as interfaces
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-  console.log(`Acesse em: http://192.168.0.24:${PORT}`);
-  
-  // Iniciar processador automático de assinaturas
-  if (process.env.NODE_ENV === 'development') {
-    startSubscriptionProcessorDev(); // Executa a cada 5 minutos em desenvolvimento
-  } else {
-    startSubscriptionProcessor(); // Executa a cada hora em produção
-  }
-});
+// Exporta o app para testes
+module.exports = app;
+
+// Inicia o servidor apenas se o arquivo for executado diretamente (não em testes)
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Servidor rodando na porta ${PORT}`);
+    console.log(`Acesse em: http://192.168.0.24:${PORT}`);
+    
+    // Iniciar processador automático de assinaturas
+    if (process.env.NODE_ENV === 'development') {
+      startSubscriptionProcessorDev(); // Executa a cada 5 minutos em desenvolvimento
+    } else {
+      startSubscriptionProcessor(); // Executa a cada hora em produção
+    }
+  });
+}
 
