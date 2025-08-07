@@ -58,6 +58,99 @@ app.get("/", (req, res) => {
   });
 });
 
+// TEMPORARY: Production database reset endpoint (REMOVE AFTER USE)
+app.post("/emergency-db-reset", async (req, res) => {
+  if (process.env.NODE_ENV !== 'production') {
+    return res.status(403).json({ error: 'Only available in production' });
+  }
+  
+  try {
+    const { PrismaClient } = require("@prisma/client");
+    const prisma = new PrismaClient();
+    
+    console.log("🚨 EMERGENCY DATABASE RESET INITIATED");
+    
+    // Delete all data in correct order
+    await prisma.payment.deleteMany();
+    await prisma.installment.deleteMany();
+    await prisma.transactionInstallment.deleteMany();
+    await prisma.debt.deleteMany();
+    await prisma.debtor.deleteMany();
+    await prisma.transaction.deleteMany();
+    await prisma.subscription.deleteMany();
+    await prisma.account.deleteMany();
+    await prisma.category.deleteMany();
+    await prisma.user.deleteMany();
+    
+    console.log("✅ All data deleted");
+    
+    // Create test user
+    const testUser = await prisma.user.create({
+      data: {
+        name: "Production Test User",
+        email: "prod.test@example.com",
+        password: "$2b$10$rQ8K8wGjFjKdUZzqfqzqHeKoOYj7J7YgZRjXj.pJ7Ks5lXKJF3lR6" // "123456"
+      }
+    });
+    
+    // Create test account
+    const testAccount = await prisma.account.create({
+      data: {
+        name: "Test Account",
+        type: "CORRENTE",
+        balance: 0,
+        userId: testUser.id
+      }
+    });
+    
+    // Create test category
+    const testCategory = await prisma.category.create({
+      data: {
+        name: "Test Category",
+        color: "#007BFF",
+        userId: testUser.id
+      }
+    });
+    
+    // Create test transaction
+    const testTransaction = await prisma.transaction.create({
+      data: {
+        description: "Test Transaction",
+        amount: 10000,
+        date: new Date(),
+        type: "RECEITA",
+        userId: testUser.id,
+        categoryId: testCategory.id,
+        accountId: testAccount.id,
+        isRecurring: false
+      },
+      include: {
+        account: true,
+        category: true
+      }
+    });
+    
+    await prisma.$disconnect();
+    
+    console.log("✅ Database reset completed with test data");
+    
+    res.json({
+      status: "success",
+      message: "Database reset completed",
+      testUser: { email: testUser.email, id: testUser.id },
+      testTransaction: { id: testTransaction.id, hasAccount: !!testTransaction.account }
+    });
+    
+  } catch (error) {
+    console.error("❌ Database reset error:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+      code: error.code
+    });
+  }
+});
+
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./src/swaggerConfig');
 
