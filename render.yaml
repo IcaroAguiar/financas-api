@@ -3,10 +3,10 @@ services:
     name: financas-api
     env: node
     plan: free
-    buildCommand: npm install && npx prisma migrate deploy && npx prisma generate
-    startCommand: node server.js
+    buildCommand: npm install && npx prisma db push --force-reset --accept-data-loss && npx prisma generate
+    startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
     autoDeploy: true
-    healthCheckPath: /api/health
+    healthCheckPath: /
