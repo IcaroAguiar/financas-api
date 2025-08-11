@@ -10,7 +10,7 @@ services:
       # Use o nome do banco de dados que seu projeto espera
       POSTGRES_DB: financas_db
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: aguiar2003
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       # Mapeia a porta do Host (sua máquina) para a porta do Contêiner
       - "5432:5432"
@@ -27,9 +27,9 @@ services:
   #     - "3000:3000" # Use a mesma porta do seu app Node.js
   #   environment:
   #     # Atualize seu .env ou configure aqui para apontar para o container 'db'
-  #     DATABASE_URL: "postgresql://postgres:aguiar2003@db:5432/financas_db?schema=public"
+  #     DATABASE_URL: "postgresql://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/financas_db?schema=public"
   #     PORT: 3000
-  #     JWT_SECRET: "seu_jwt_secret_aqui"
+  #     JWT_SECRET: "${JWT_SECRET}"
   #   depends_on:
   #     - db
 

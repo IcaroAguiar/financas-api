@@ -15,4 +15,8 @@ lerna-debug.log*
 /src/generated/prisma
 
 
+# SQL dumps and production scripts (security)
 financas.sql
+reset-production-db.js
+fix-production.js
+*-debug.json
