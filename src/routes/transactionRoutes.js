@@ -80,6 +80,37 @@ router.get('/summary', transactionController.getFinancialSummary);
 
 /**
  * @swagger
+ * /api/transactions/monthly-summary:
+ *   get:
+ *     summary: Get monthly financial summary with filters
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: month
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 12
+ *         description: Month number (1-12)
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *           minimum: 1900
+ *           maximum: 2100
+ *         description: Year (e.g., 2025)
+ *     responses:
+ *       200:
+ *         description: The monthly financial summary
+ *       401:
+ *         description: Unauthorized
+ */
+router.get('/monthly-summary', transactionController.getSummary);
+
+/**
+ * @swagger
  * /api/transactions/{id}:
  *   put:
  *     summary: Update a transaction

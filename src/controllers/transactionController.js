@@ -226,13 +226,39 @@ const getAllTransactions = async (req, res) => {
       return res.status(401).json({ error: "Usuário não autenticado." });
     }
     
-    const { accountId } = req.query; // Filtro opcional por conta
-    console.error("🔍 CONTROLLER: accountId =", accountId);
+    const { accountId, month, year } = req.query; // Filtros opcionais
+    console.error("🔍 CONTROLLER: Filters - accountId =", accountId, ", month =", month, ", year =", year);
 
     // Constrói o filtro de busca
     const whereClause = { userId };
     if (accountId) {
       whereClause.accountId = accountId;
+    }
+
+    // Adiciona filtro de mês e ano se fornecidos
+    if (month && year) {
+      const monthNum = parseInt(month);
+      const yearNum = parseInt(year);
+      
+      // Validações
+      if (monthNum < 1 || monthNum > 12) {
+        return res.status(400).json({ error: "Mês deve estar entre 1 e 12." });
+      }
+      
+      if (yearNum < 1900 || yearNum > 2100) {
+        return res.status(400).json({ error: "Ano deve estar entre 1900 e 2100." });
+      }
+
+      // Criando início e fim do mês para filtro
+      const startOfMonth = new Date(yearNum, monthNum - 1, 1); // Mês em JS é 0-indexed
+      const endOfMonth = new Date(yearNum, monthNum, 0, 23, 59, 59, 999); // Último dia do mês
+      
+      whereClause.date = {
+        gte: startOfMonth,
+        lte: endOfMonth
+      };
+      
+      console.error("🔍 CONTROLLER: Date filter - startOfMonth =", startOfMonth, ", endOfMonth =", endOfMonth);
     }
     
     console.error("🔍 CONTROLLER: whereClause =", whereClause);
@@ -632,6 +658,92 @@ const registerPartialPayment = async (req, res) => {
   }
 };
 
+// --- RESUMO FINANCEIRO MENSAL ---
+const getSummary = async (req, res) => {
+  try {
+    console.log("📊 CONTROLLER: getSummary called");
+    
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({ error: "Usuário não autenticado." });
+    }
+    
+    const { month, year } = req.query;
+    console.log("📊 CONTROLLER: Filters - month =", month, ", year =", year);
+    
+    // Se mês e ano não foram fornecidos, usar mês/ano atual
+    const currentDate = new Date();
+    const monthNum = month ? parseInt(month) : currentDate.getMonth() + 1;
+    const yearNum = year ? parseInt(year) : currentDate.getFullYear();
+    
+    // Validações
+    if (monthNum < 1 || monthNum > 12) {
+      return res.status(400).json({ error: "Mês deve estar entre 1 e 12." });
+    }
+    
+    if (yearNum < 1900 || yearNum > 2100) {
+      return res.status(400).json({ error: "Ano deve estar entre 1900 e 2100." });
+    }
+    
+    // Criando início e fim do mês para filtro
+    const startOfMonth = new Date(yearNum, monthNum - 1, 1);
+    const endOfMonth = new Date(yearNum, monthNum, 0, 23, 59, 59, 999);
+    
+    console.log("📊 CONTROLLER: Date range - startOfMonth =", startOfMonth, ", endOfMonth =", endOfMonth);
+    
+    // Buscar transações do período
+    const transactions = await prisma.transaction.findMany({
+      where: {
+        userId,
+        date: {
+          gte: startOfMonth,
+          lte: endOfMonth
+        }
+      },
+      select: {
+        amount: true,
+        type: true
+      }
+    });
+    
+    // Calcular resumo
+    let totalIncome = 0;
+    let totalExpenses = 0;
+    
+    transactions.forEach(transaction => {
+      if (transaction.type === 'RECEITA') {
+        totalIncome += transaction.amount;
+      } else if (transaction.type === 'DESPESA') {
+        totalExpenses += transaction.amount;
+      }
+      // PAGO é ignorado no cálculo de resumo (são pagamentos de dívidas)
+    });
+    
+    const balance = totalIncome - totalExpenses;
+    
+    console.log("📊 CONTROLLER: Summary - totalIncome =", totalIncome, ", totalExpenses =", totalExpenses, ", balance =", balance);
+    
+    const summary = {
+      period: {
+        month: monthNum,
+        year: yearNum,
+        monthName: new Date(yearNum, monthNum - 1, 1).toLocaleDateString('pt-BR', { month: 'long' })
+      },
+      totalIncome,
+      totalExpenses,
+      balance,
+      transactionCount: transactions.length
+    };
+    
+    res.status(200).json(summary);
+    
+  } catch (error) {
+    console.error("❌ CONTROLLER ERROR getSummary:", error);
+    res.status(500).json({ error: "Não foi possível gerar resumo financeiro." });
+  }
+};
+
 module.exports = {
   createTransaction,
   getAllTransactions,
@@ -641,4 +753,5 @@ module.exports = {
   markTransactionInstallmentPaid,
   markTransactionPaid,
   registerPartialPayment,
+  getSummary,
 };

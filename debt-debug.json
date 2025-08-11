@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-08-11T03:49:06.954Z",
+  "requestBody": {
+    "description": "teste cobrar",
+    "totalAmount": 5,
+    "debtorId": "fd867c3b-9822-4618-b388-1dd5e06b3df4",
+    "isInstallment": false
+  },
+  "extractedFields": {
+    "description": "teste cobrar",
+    "totalAmount": 5,
+    "debtorId": "fd867c3b-9822-4618-b388-1dd5e06b3df4",
+    "userId": "0b3de6f8-20b0-45db-8f52-8a3e5316c23a"
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "timestamp": "2025-08-11T04:28:33.527Z",
+  "method": "GET",
+  "url": "/",
+  "headers": {
+    "accept": "application/json, text/plain, */*",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwYjNkZTZmOC0yMGIwLTQ1ZGItOGY1Mi04YTNlNTMxNmMyM2EiLCJpYXQiOjE3NTQ4ODM2MjMsImV4cCI6MTc1NDk3MDAyM30.k3Wdydq03Wu1Tn8b3xp4c3n6XSUhX82fe01wsE0lOK8",
+    "host": "192.168.0.24:3000",
+    "connection": "Keep-Alive",
+    "accept-encoding": "gzip",
+    "user-agent": "okhttp/4.9.2",
+    "if-none-match": "W/\"ce5-CM+ab4kMRgIZSrwKHevTP0bRGeg\""
+  },
+  "hasAuth": true
+}

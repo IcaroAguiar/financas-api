@@ -99,7 +99,7 @@ model Debt {
   id            String     @id @default(uuid())
   description   String
   totalAmount   Int        // Changed to Int (cents)
-  dueDate       DateTime
+  dueDate       DateTime?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   debtorId      String
@@ -110,6 +110,9 @@ model Debt {
   installmentCount      Int?
   installmentFrequency  InstallmentFrequency?
   installmentAmount     Int?                    // Changed to Int (cents)
+  
+  // Notification management
+  notificationId        String?                 // ID do agendamento de notificação
   
   debtor        Debtor     @relation(fields: [debtorId], references: [id], onDelete: Cascade)
   payments      Payment[]
