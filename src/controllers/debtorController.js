@@ -61,26 +61,45 @@ const updateDebtor = async (req, res) => {
   const { name, email, phone } = req.body;
   const userId = req.user.id;
   
+  console.log('🔧 updateDebtor called with:', {
+    id,
+    name,
+    email,
+    phone,
+    userId
+  });
+  
   try {
     // Verificação de segurança: devedor pertence ao usuário?
+    console.log('🔧 Looking for debtor with ID:', id);
     const debtor = await prisma.debtor.findUnique({ where: { id } });
+    console.log('🔧 Found debtor:', debtor);
     
     if (!debtor) {
+      console.log('🔧 Debtor not found');
       return res.status(404).json({ error: 'Devedor não encontrado.' });
     }
     
+    console.log('🔧 Debtor userId:', debtor.userId, 'Current userId:', userId);
     if (debtor.userId !== userId) {
+      console.log('🔧 Access denied - userId mismatch');
       return res.status(403).json({ error: 'Acesso negado. Você não pode modificar este devedor.' });
     }
     
+    console.log('🔧 Updating debtor with data:', { name, email, phone });
     const updated = await prisma.debtor.update({
       where: { id },
       data: { name, email, phone },
     });
     
+    console.log('🔧 Debtor updated successfully:', updated);
     res.json(updated);
   } catch (err) {
-    console.error("Erro ao atualizar devedor:", err);
+    console.error("❌ DETAILED UPDATE ERROR:", err.message);
+    console.error("❌ ERROR STACK:", err.stack);
+    console.error("❌ USER ID:", userId);
+    console.error("❌ DEBTOR ID:", id);
+    console.error("❌ REQUEST BODY:", req.body);
     res.status(500).json({ error: 'Erro ao atualizar devedor' });
   }
 };

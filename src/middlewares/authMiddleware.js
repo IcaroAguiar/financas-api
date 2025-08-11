@@ -5,6 +5,16 @@ const prisma = require("../lib/prisma");
 
 const authMiddleware = async (req, res, next) => {
   try {
+    // Debug file for auth middleware
+    const fs = require('fs');
+    fs.writeFileSync('auth-debug.json', JSON.stringify({
+      timestamp: new Date().toISOString(),
+      method: req.method,
+      url: req.url,
+      headers: req.headers,
+      hasAuth: !!req.headers.authorization
+    }, null, 2));
+    
     // 1. Pega o token do cabeçalho da requisição
     // O formato esperado é "Bearer TOKEN"
     const authHeader = req.headers.authorization;

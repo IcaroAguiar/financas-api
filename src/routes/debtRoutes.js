@@ -143,6 +143,7 @@ router.post('/', debtController.createDebt);
  *         description: Unauthorized
  */
 router.put('/:id', debtController.updateDebt);
+router.patch('/:id', debtController.updateDebt); // Add PATCH support for consistency
 
 /**
  * @swagger

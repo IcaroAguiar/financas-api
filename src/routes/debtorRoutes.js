@@ -88,6 +88,7 @@ router.post('/', debtorController.createDebtor);
  *         description: Unauthorized
  */
 router.put('/:id', debtorController.updateDebtor);
+router.patch('/:id', debtorController.updateDebtor); // Add PATCH support for consistency
 
 /**
  * @swagger
