@@ -1,7 +1,7 @@
 {
-  "timestamp": "2025-08-12T23:44:51.706Z",
+  "timestamp": "2025-08-12T23:54:07.229Z",
   "method": "GET",
-  "url": "/",
+  "url": "/monthly-summary?month=8&year=2025",
   "headers": {
     "accept": "application/json, text/plain, */*",
     "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwYjNkZTZmOC0yMGIwLTQ1ZGItOGY1Mi04YTNlNTMxNmMyM2EiLCJpYXQiOjE3NTUwMzk0MjcsImV4cCI6MTc1NTEyNTgyN30.QlDgmFZZasVuRpquACuYQ7F4gYxLEpvvpE8v3QL8LS4",
@@ -9,7 +9,7 @@
     "connection": "Keep-Alive",
     "accept-encoding": "gzip",
     "user-agent": "okhttp/4.9.2",
-    "if-none-match": "W/\"1453-ThduLT+InDmF2pGe2qeaPnQn06w\""
+    "if-none-match": "W/\"83-5rE0Sa3ShlJUTiAEMddL/ixqPZE\""
   },
   "hasAuth": true
 }
