@@ -878,87 +878,85 @@ const getSummary = async (req, res) => {
     const startOfMonth = new Date(yearNum, monthNum - 1, 1);
     const endOfMonth = new Date(yearNum, monthNum, 0, 23, 59, 59, 999);
     
+    // ===== CORREÇÃO CRÍTICA: NOVA LÓGICA DE CÁLCULO =====
+    // Agora o cálculo principal será baseado na tabela TransactionInstallment
     
-    // Buscar transações considerando lógica de parcelamento
-    const transactions = await prisma.transaction.findMany({
+    // 1. Buscar todas as parcelas que vencem no período
+    const installmentsInPeriod = await prisma.transactionInstallment.findMany({
       where: {
-        userId,
-        OR: [
-          {
-            // Transações não parceladas criadas no período
-            isInstallmentPlan: false,
-            date: {
-              gte: startOfMonth,
-              lte: endOfMonth
-            }
-          },
-          {
-            // Transações parceladas que tenham parcelas no período
-            isInstallmentPlan: true,
-            installments: {
-              some: {
-                dueDate: {
-                  gte: startOfMonth,
-                  lte: endOfMonth
-                }
-              }
-            }
-          }
-        ]
+        dueDate: {
+          gte: startOfMonth,
+          lte: endOfMonth
+        },
+        transaction: {
+          userId: userId
+        }
       },
-      select: {
-        amount: true,
-        type: true,
-        isInstallmentPlan: true,
-        installments: {
-          where: {
-            dueDate: {
-              gte: startOfMonth,
-              lte: endOfMonth
-            }
-          },
+      include: {
+        transaction: {
           select: {
-            amount: true
+            type: true,
+            userId: true
           }
         }
       }
     });
+
+    // 2. Buscar transações não parceladas criadas no período
+    const nonInstallmentTransactions = await prisma.transaction.findMany({
+      where: {
+        userId,
+        isInstallmentPlan: false,
+        date: {
+          gte: startOfMonth,
+          lte: endOfMonth
+        }
+      },
+      select: {
+        amount: true,
+        type: true
+      }
+    });
     
-    // Gerar transações virtuais recorrentes para o período
+    // 3. Gerar transações virtuais recorrentes para o período
     const virtualTransactions = await generateVirtualRecurringTransactions(userId, startOfMonth, endOfMonth);
 
-    // Combinar transações reais e virtuais para cálculo
-    const allTransactions = [...transactions, ...virtualTransactions];
-
-    // Calcular resumo considerando lógica de parcelas e transações virtuais
+    // 4. Calcular totais usando a nova lógica
     let totalIncome = 0;
     let totalExpenses = 0;
     
-    allTransactions.forEach(transaction => {
-      let amountToAdd = 0;
-      
-      if (transaction.isVirtual) {
-        // Para transações virtuais (recorrentes), usar o valor total
-        amountToAdd = transaction.amount;
-      } else if (transaction.isInstallmentPlan && transaction.installments.length > 0) {
-        // Para transações parceladas, somar apenas as parcelas que vencem no mês
-        amountToAdd = transaction.installments.reduce((sum, installment) => sum + installment.amount, 0);
-      } else if (!transaction.isInstallmentPlan) {
-        // Para transações não parceladas, usar o valor total
-        amountToAdd = transaction.amount;
+    // Somar parcelas que vencem no período (apenas o valor da parcela individual)
+    installmentsInPeriod.forEach(installment => {
+      if (installment.transaction.type === 'RECEITA') {
+        totalIncome += installment.amount;
+      } else if (installment.transaction.type === 'DESPESA') {
+        totalExpenses += installment.amount;
       }
-      // Se é parcelada mas não tem parcelas no período, não adiciona nada (amountToAdd = 0)
-      
+      // PAGO é ignorado no cálculo de resumo
+    });
+    
+    // Somar transações não parceladas
+    nonInstallmentTransactions.forEach(transaction => {
       if (transaction.type === 'RECEITA') {
-        totalIncome += amountToAdd;
+        totalIncome += transaction.amount;
       } else if (transaction.type === 'DESPESA') {
-        totalExpenses += amountToAdd;
+        totalExpenses += transaction.amount;
       }
-      // PAGO é ignorado no cálculo de resumo (são pagamentos de dívidas)
+      // PAGO é ignorado no cálculo de resumo
+    });
+    
+    // Somar transações virtuais (recorrentes)
+    virtualTransactions.forEach(transaction => {
+      if (transaction.type === 'RECEITA') {
+        totalIncome += transaction.amount;
+      } else if (transaction.type === 'DESPESA') {
+        totalExpenses += transaction.amount;
+      }
     });
     
     const balance = totalIncome - totalExpenses;
     
+    const totalTransactionCount = installmentsInPeriod.length + nonInstallmentTransactions.length + virtualTransactions.length;
     
     const summary = {
       period: {
@@ -969,7 +967,7 @@ const getSummary = async (req, res) => {
       totalIncome,
       totalExpenses,
       balance,
-      transactionCount: allTransactions.length
+      transactionCount: totalTransactionCount
     };
     
     res.status(200).json(summary);
