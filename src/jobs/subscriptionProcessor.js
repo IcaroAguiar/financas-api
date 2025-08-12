@@ -28,7 +28,7 @@ const calculateNextPaymentDate = (startDate, frequency, lastProcessedAt = null) 
 
 // Processar todas as assinaturas que venceram
 const processAllSubscriptions = async () => {
-  console.log('🔄 Iniciando processamento automático de assinaturas...');
+  // Processing subscription payments
   
   try {
     const now = new Date();
@@ -50,10 +50,12 @@ const processAllSubscriptions = async () => {
       }
     });
 
-    console.log(`📋 Encontradas ${subscriptionsToProcess.length} assinaturas para processar`);
+    if (subscriptionsToProcess.length > 0) {
+      console.log(`💰 Processando ${subscriptionsToProcess.length} assinatura(s) vencida(s)`);
+    }
 
     if (subscriptionsToProcess.length === 0) {
-      console.log('✅ Nenhuma assinatura precisa ser processada no momento');
+      // No subscriptions to process
       return {
         success: true,
         processedCount: 0,
@@ -70,7 +72,7 @@ const processAllSubscriptions = async () => {
     // Processar cada assinatura
     for (const subscription of subscriptionsToProcess) {
       try {
-        console.log(`💰 Processando assinatura "${subscription.name}" (${subscription.id})`);
+        // Processing subscription: ${subscription.name}
         
         // Criar transação
         const transaction = await prisma.transaction.create({
@@ -117,7 +119,7 @@ const processAllSubscriptions = async () => {
           userName: subscription.user.name
         });
 
-        console.log(`✅ Assinatura "${subscription.name}" processada com sucesso - Próximo pagamento: ${nextPaymentDate.toISOString()}`);
+        // Subscription processed successfully
         
       } catch (subscriptionError) {
         console.error(`❌ Erro ao processar assinatura ${subscription.id} (${subscription.name}):`, subscriptionError);
@@ -129,7 +131,9 @@ const processAllSubscriptions = async () => {
       }
     }
 
-    console.log(`🎉 Processamento concluído: ${results.processedCount} assinaturas processadas, ${results.errors.length} erros`);
+    if (results.processedCount > 0) {
+      console.log(`✅ ${results.processedCount} assinatura(s) processada(s) com sucesso`);
+    }
     
     return {
       success: true,

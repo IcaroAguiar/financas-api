@@ -40,12 +40,10 @@ app.use(morgan('combined'));
 // Middleware para permitir que o express entenda requisições com corpo em JSON
 app.use(express.json());
 
-// Simple debug middleware to log all requests
+// Simplified request logging for development
 app.use((req, res, next) => {
-  console.log(`🌐 ${new Date().toISOString()} - ${req.method} ${req.url}`);
-  console.log(`🌐 Headers:`, req.headers);
-  if (req.body && Object.keys(req.body).length > 0) {
-    console.log(`🌐 Body:`, JSON.stringify(req.body, null, 2));
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🌐 ${req.method} ${req.url}`);
   }
   next();
 });
@@ -58,7 +56,6 @@ app.use(cors({
 
 // Rota de teste para verificar se o servidor está funcionando
 app.get("/", (req, res) => {
-  console.log("🌐 ROOT ENDPOINT HIT!");
   res.json({ 
     message: "API de Finanças está no ar!", 
     version: "1.1.0",
@@ -69,8 +66,10 @@ app.get("/", (req, res) => {
 
 // Test endpoint for debugging
 app.post("/api/test-debug", (req, res) => {
-  console.log("🧪 TEST DEBUG ENDPOINT HIT!");
-  console.log("🧪 Request body:", JSON.stringify(req.body, null, 2));
+  if (process.env.NODE_ENV === 'development') {
+    console.log("🧪 TEST DEBUG ENDPOINT HIT!");
+    console.log("🧪 Request body:", JSON.stringify(req.body, null, 2));
+  }
   res.json({ message: "Debug endpoint working", receivedData: req.body });
 });
 

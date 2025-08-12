@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const paymentController = require('../controllers/paymentsController');
+const newPaymentController = require('../controllers/paymentController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
 // Apply authentication middleware to all payment routes
@@ -84,5 +85,19 @@ router.get('/debt/:debtId', paymentController.getPaymentsByDebtId);
  *         description: Unauthorized
  */
 router.delete('/:id', paymentController.deletePayment);
+
+// NEW ROUTES - Enhanced payment system
+
+// Criar pagamento usando novo controlador
+router.post('/debts/:debtId', newPaymentController.createPayment);
+
+// Listar pagamentos de uma dívida
+router.get('/debts/:debtId', newPaymentController.getPaymentsByDebt);
+
+// Marcar dívida como paga
+router.put('/debts/:debtId/mark-paid', newPaymentController.markDebtAsPaid);
+
+// Deletar pagamento usando novo controlador
+router.delete('/payments/:paymentId', newPaymentController.deletePayment);
 
 module.exports = router;

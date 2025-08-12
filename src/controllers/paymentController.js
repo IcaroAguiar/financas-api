@@ -1,5 +1,41 @@
 const prisma = require("../lib/prisma");
 
+// Função para verificar se uma dívida foi totalmente paga e criar transação de receita
+const checkAndHandleDebtFullyPaid = async (debt) => {
+  try {
+    // Calcular total pago
+    const totalPaid = debt.payments.reduce((sum, payment) => sum + payment.amount, 0);
+    
+    // Verificar se a dívida foi totalmente paga
+    if (totalPaid >= debt.totalAmount && debt.status !== 'PAGA') {
+      // Marcar dívida como paga
+      await prisma.debt.update({
+        where: { id: debt.id },
+        data: { status: 'PAGA' }
+      });
+
+      // Criar transação de receita automaticamente
+      await prisma.transaction.create({
+        data: {
+          description: `Recebimento de cobrança: ${debt.debtor.name}`,
+          amount: debt.totalAmount,
+          date: new Date(),
+          type: 'RECEITA',
+          userId: debt.debtor.userId,
+          isRecurring: false,
+          // Podemos criar uma categoria específica para recebimentos de dívidas
+          // ou deixar sem categoria por enquanto
+        }
+      });
+
+      console.log(`✅ Dívida ${debt.id} marcada como PAGA e transação de receita criada automaticamente`);
+    }
+  } catch (error) {
+    console.error('❌ Erro ao processar dívida totalmente paga:', error);
+    // Não propagar o erro para não afetar o fluxo principal
+  }
+};
+
 // Criar pagamento para uma dívida específica do usuário logado
 const createPayment = async (req, res) => {
   const { debtId } = req.params;
@@ -51,11 +87,15 @@ const createPayment = async (req, res) => {
       include: {
         debt: {
           include: {
-            debtor: true
+            debtor: true,
+            payments: true
           }
         }
       }
     });
+
+    // Verificar se a dívida foi totalmente paga após este pagamento
+    await checkAndHandleDebtFullyPaid(newPayment.debt);
 
     res.status(201).json(newPayment);
   } catch (err) {
@@ -147,8 +187,68 @@ const deletePayment = async (req, res) => {
   }
 };
 
+// Marcar dívida como paga manualmente
+const markDebtAsPaid = async (req, res) => {
+  const { debtId } = req.params;
+  const userId = req.user.id;
+
+  try {
+    // VERIFICAÇÃO CRÍTICA: A dívida pertence ao usuário logado?
+    const debt = await prisma.debt.findFirst({
+      where: {
+        id: debtId,
+        debtor: {
+          userId
+        }
+      },
+      include: {
+        debtor: true,
+        payments: true
+      }
+    });
+
+    if (!debt) {
+      return res.status(404).json({ error: 'Dívida não encontrada ou não pertence a você.' });
+    }
+
+    if (debt.status === 'PAGA') {
+      return res.status(400).json({ error: 'Esta dívida já está marcada como paga.' });
+    }
+
+    // Marcar dívida como paga
+    const updatedDebt = await prisma.debt.update({
+      where: { id: debtId },
+      data: { status: 'PAGA' },
+      include: {
+        debtor: true,
+        payments: true
+      }
+    });
+
+    // Criar transação de receita automaticamente
+    await prisma.transaction.create({
+      data: {
+        description: `Recebimento de cobrança: ${debt.debtor.name}`,
+        amount: debt.totalAmount,
+        date: new Date(),
+        type: 'RECEITA',
+        userId: debt.debtor.userId,
+        isRecurring: false,
+      }
+    });
+
+    console.log(`✅ Dívida ${debt.id} marcada como PAGA manualmente e transação de receita criada`);
+
+    res.status(200).json(updatedDebt);
+  } catch (err) {
+    console.error('Erro ao marcar dívida como paga:', err);
+    res.status(500).json({ error: 'Erro interno do servidor ao marcar dívida como paga.' });
+  }
+};
+
 module.exports = {
   createPayment,
   getPaymentsByDebt,
   deletePayment,
+  markDebtAsPaid,
 };
