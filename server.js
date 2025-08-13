@@ -73,11 +73,45 @@ app.post("/api/test-debug", (req, res) => {
   res.json({ message: "Debug endpoint working", receivedData: req.body });
 });
 
-// CRITICAL: Raw SQL database reset for testers (REMOVE AFTER USE)
+// CRITICAL: SUPER PROTECTED database reset endpoint - REQUIRES EXPLICIT CONFIRMATION
 app.post("/emergency-db-reset", async (req, res) => {
+  // AUDIT LOG: Record every attempt to access this dangerous endpoint
+  const timestamp = new Date().toISOString();
+  const clientIP = req.ip || req.connection.remoteAddress || 'unknown';
+  const userAgent = req.get('User-Agent') || 'unknown';
+  
+  console.log(`🔒 AUDIT LOG: Emergency reset endpoint accessed at ${timestamp}`);
+  console.log(`🔒 AUDIT LOG: Client IP: ${clientIP}`);
+  console.log(`🔒 AUDIT LOG: User Agent: ${userAgent}`);
+  console.log(`🔒 AUDIT LOG: Request Body Keys: ${Object.keys(req.body).join(', ')}`);
+
+  // PROTECTION 1: Environment check
   if (process.env.NODE_ENV !== 'production') {
+    console.log("🔒 AUDIT LOG: Access denied - not in production environment");
     return res.status(403).json({ error: 'Only available in production' });
   }
+
+  // PROTECTION 2: Require explicit confirmation parameter
+  const { confirmDeletion, emergencyKey } = req.body;
+  if (confirmDeletion !== "YES_DELETE_ALL_DATA_PERMANENTLY") {
+    console.log("🛡️  PROTECTION: Emergency reset blocked - missing confirmation");
+    return res.status(403).json({ 
+      error: 'PROTEÇÃO ATIVA: Para executar este endpoint perigoso, inclua confirmDeletion: "YES_DELETE_ALL_DATA_PERMANENTLY" no body da requisição' 
+    });
+  }
+
+  // PROTECTION 3: Require emergency key
+  if (emergencyKey !== "EMERGENCY_2025_RESET_KEY") {
+    console.log("🛡️  PROTECTION: Emergency reset blocked - invalid emergency key");
+    return res.status(403).json({ 
+      error: 'PROTEÇÃO ATIVA: Chave de emergência inválida. Necessário emergencyKey correto.' 
+    });
+  }
+
+  // PROTECTION 4: Additional safety delay
+  console.log("🚨 ATENÇÃO: Reset do banco será executado em 5 segundos...");
+  console.log("⚠️  ÚLTIMA CHANCE: Pressione Ctrl+C para cancelar!");
+  await new Promise(resolve => setTimeout(resolve, 5000));
   
   try {
     console.log("🚨 CRITICAL PRODUCTION FIX FOR TESTERS INITIATED");
