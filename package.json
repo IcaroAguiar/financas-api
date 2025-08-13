@@ -2,7 +2,7 @@
   "name": "financas-api",
   "version": "1.0.0",
   "main": "index.js",
-   "scripts": {
+  "scripts": {
     "test": "node src/tests/health.test.js",
     "dev": "npx prisma generate && nodemon server.js",
     "start": "echo 'PRODUCTION MODE - Starting with NODE' && npx prisma generate && echo 'Prisma client ready' && node server.js",
@@ -17,6 +17,7 @@
     "@prisma/client": "^6.11.1",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.0.1",
     "express": "^5.1.0",
     "helmet": "^8.1.0",

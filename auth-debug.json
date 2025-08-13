@@ -1,15 +1,12 @@
 {
-  "timestamp": "2025-08-12T23:57:38.870Z",
+  "timestamp": "2025-08-13T04:12:35.263Z",
   "method": "GET",
   "url": "/monthly-summary?month=8&year=2025",
   "headers": {
-    "accept": "application/json, text/plain, */*",
-    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwYjNkZTZmOC0yMGIwLTQ1ZGItOGY1Mi04YTNlNTMxNmMyM2EiLCJpYXQiOjE3NTUwMzk0MjcsImV4cCI6MTc1NTEyNTgyN30.QlDgmFZZasVuRpquACuYQ7F4gYxLEpvvpE8v3QL8LS4",
     "host": "192.168.0.24:3000",
-    "connection": "Keep-Alive",
-    "accept-encoding": "gzip",
-    "user-agent": "okhttp/4.9.2",
-    "if-none-match": "W/\"7f-zJ8IpjiX0JYIVH+gLIvTBue5eJs\""
+    "user-agent": "curl/8.13.0",
+    "accept": "*/*",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5NmVlZTNhZi02MTMzLTQ0NGUtYmZlYy0wMDAyMWU2MTExMDciLCJpYXQiOjE3NTUwNTgxNjIsImV4cCI6MTc1NTE0NDU2Mn0.dlIfTbS-q0Q51ckxhBk-_qAYFcVqAiRwRp5fT6333Wc"
   },
   "hasAuth": true
 }

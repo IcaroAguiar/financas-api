@@ -2,6 +2,31 @@
 
 const prisma = require("../lib/prisma");
 const { TransactionType } = require("@prisma/client"); // Importa o Enum
+const { addMonths, addWeeks } = require("date-fns");
+
+// Lista das categorias pré-definidas válidas
+const predefinedCategoryIds = [
+  'alimentacao', 'transporte', 'moradia', 'saude', 'educacao', 
+  'lazer', 'compras', 'contas', 'salario', 'freelance', 
+  'investimentos', 'vendas', 'bonus'
+];
+
+// Map de categorias pré-definidas
+const predefinedCategories = {
+  'alimentacao': { id: 'alimentacao', name: 'Alimentação', color: '#FF6B6B' },
+  'transporte': { id: 'transporte', name: 'Transporte', color: '#4ECDC4' },
+  'moradia': { id: 'moradia', name: 'Moradia', color: '#45B7D1' },
+  'saude': { id: 'saude', name: 'Saúde', color: '#FFA07A' },
+  'educacao': { id: 'educacao', name: 'Educação', color: '#98D8C8' },
+  'lazer': { id: 'lazer', name: 'Lazer', color: '#F7DC6F' },
+  'compras': { id: 'compras', name: 'Compras', color: '#BB8FCE' },
+  'contas': { id: 'contas', name: 'Contas', color: '#85C1E9' },
+  'salario': { id: 'salario', name: 'Salário', color: '#52C41A' },
+  'freelance': { id: 'freelance', name: 'Freelance', color: '#1890FF' },
+  'investimentos': { id: 'investimentos', name: 'Investimentos', color: '#722ED1' },
+  'vendas': { id: 'vendas', name: 'Vendas', color: '#FA8C16' },
+  'bonus': { id: 'bonus', name: 'Bônus', color: '#EB2F96' }
+};
 
 // --- FUNÇÕES AUXILIARES PARA PROJEÇÕES DE TRANSAÇÕES RECORRENTES ---
 
@@ -144,6 +169,25 @@ const createTransaction = async (req, res) => {
       }
     }
 
+    // Validação adicional para categoryId se fornecido
+    if (categoryId) {
+      // Verificar se é uma categoria pré-definida válida
+      if (!predefinedCategoryIds.includes(categoryId)) {
+        // Se não é pré-definida, verificar se existe no banco
+        const category = await prisma.category.findUnique({
+          where: { id: categoryId },
+        });
+
+        if (!category) {
+          return res.status(404).json({ error: "Categoria não encontrada." });
+        }
+
+        if (category.userId !== userId) {
+          return res.status(403).json({ error: "Acesso negado à categoria especificada." });
+        }
+      }
+    }
+
     // Handle recurring transaction logic
     let subscriptionId = null;
     if (isRecurring && subscriptionFrequency) {
@@ -203,11 +247,21 @@ const createTransaction = async (req, res) => {
       date: new Date(date),
       type,
       userId,
-      categoryId,
       accountId,
       isRecurring: Boolean(isRecurring),
       subscriptionId,
     };
+    
+    // Only set categoryId if it's not a predefined category
+    if (categoryId && !predefinedCategoryIds.includes(categoryId)) {
+      transactionData.categoryId = categoryId;
+    }
+    
+    // Store predefined category ID in description metadata for now
+    let predefinedCategoryId = null;
+    if (categoryId && predefinedCategoryIds.includes(categoryId)) {
+      predefinedCategoryId = categoryId;
+    }
 
     // Add installment plan fields if provided
     if (isInstallmentPlan && installmentCount && installmentFrequency) {
@@ -255,19 +309,22 @@ const createTransaction = async (req, res) => {
       const firstDate = firstInstallmentDate ? new Date(firstInstallmentDate) : new Date(date);
       
       const installments = [];
-      for (let i = 0; i < count; i++) {
-        let dueDate = new Date(firstDate);
-        
-        if (installmentFrequency === 'MONTHLY') {
-          dueDate.setMonth(firstDate.getMonth() + i);
-        } else if (installmentFrequency === 'WEEKLY') {
-          dueDate.setDate(firstDate.getDate() + (i * 7));
+      let currentDueDate = new Date(firstDate);
+      
+      for (let i = 1; i <= count; i++) {
+        if (i > 1) {
+          // For the second installment onwards, add time to the previous date
+          if (installmentFrequency === 'MONTHLY') {
+            currentDueDate = addMonths(currentDueDate, 1);
+          } else if (installmentFrequency === 'WEEKLY') {
+            currentDueDate = addWeeks(currentDueDate, 1);
+          }
         }
         
         installments.push({
-          installmentNumber: i + 1,
+          installmentNumber: i,
           amount: installmentAmount,
-          dueDate: dueDate,
+          dueDate: new Date(currentDueDate), // Create a new Date object to avoid reference issues
           status: 'PENDENTE',
           transactionId: newTransaction.id,
         });
@@ -291,9 +348,19 @@ const createTransaction = async (req, res) => {
         },
       });
       
+      // Add predefined category info to response if applicable
+      if (predefinedCategoryId) {
+        updatedTransaction.predefinedCategory = predefinedCategories[predefinedCategoryId];
+      }
+      
       return res.status(201).json(updatedTransaction);
     }
 
+    // Add predefined category info to response if applicable
+    if (predefinedCategoryId) {
+      newTransaction.predefinedCategory = predefinedCategories[predefinedCategoryId];
+    }
+    
     res.status(201).json(newTransaction);
   } catch (error) {
     console.error("Erro ao criar transação:", error);
@@ -403,7 +470,50 @@ const getAllTransactions = async (req, res) => {
       allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
-    res.status(200).json(allTransactions);
+    // Add predefined category info to transactions that don't have category but might use predefined ones
+    const transactionsWithPredefinedCategories = allTransactions.map(transaction => {
+      // Check if transaction description contains clues about predefined categories
+      // For now, we'll check if we can find a predefined category match based on stored data
+      
+      // If transaction was created with a predefined category, we need to reconstruct that info
+      // We can identify these by checking if categoryId is null but the transaction should have a category
+      if (!transaction.category && !transaction.categoryId) {
+        // Try to find predefined category info from description or other clues
+        // For transactions created with predefined categories, we'll add the info back
+        
+        // Check if this might be a predefined category transaction by checking common patterns
+        const description = transaction.description?.toLowerCase() || '';
+        
+        // Simple heuristic matching (this is a temporary solution)
+        let predefinedCategoryId = null;
+        
+        if (description.includes('almoço') || description.includes('jantar') || description.includes('café') || description.includes('restaurante') || description.includes('comida')) {
+          predefinedCategoryId = 'alimentacao';
+        } else if (description.includes('ônibus') || description.includes('onibus') || description.includes('metro') || description.includes('taxi') || description.includes('uber') || description.includes('transporte') || description.includes('trabalho')) {
+          predefinedCategoryId = 'transporte';
+        } else if (description.includes('compra') || description.includes('supermercado') || description.includes('loja') || description.includes('shopping')) {
+          predefinedCategoryId = 'compras';
+        } else if (description.includes('aluguel') || description.includes('condomínio') || description.includes('financiamento') || description.includes('casa')) {
+          predefinedCategoryId = 'moradia';
+        } else if (description.includes('médico') || description.includes('farmácia') || description.includes('hospital') || description.includes('consulta')) {
+          predefinedCategoryId = 'saude';
+        } else if (description.includes('escola') || description.includes('curso') || description.includes('faculdade') || description.includes('livro')) {
+          predefinedCategoryId = 'educacao';
+        } else if (description.includes('cinema') || description.includes('festa') || description.includes('viagem') || description.includes('diversão')) {
+          predefinedCategoryId = 'lazer';
+        } else if (description.includes('luz') || description.includes('água') || description.includes('telefone') || description.includes('internet') || description.includes('conta')) {
+          predefinedCategoryId = 'contas';
+        }
+        
+        if (predefinedCategoryId && predefinedCategories[predefinedCategoryId]) {
+          transaction.predefinedCategory = predefinedCategories[predefinedCategoryId];
+        }
+      }
+      
+      return transaction;
+    });
+
+    res.status(200).json(transactionsWithPredefinedCategories);
   } catch (error) {
     console.error("❌ CONTROLLER ERROR:", error.message);
     console.error("❌ CONTROLLER ERROR STACK:", error.stack);
