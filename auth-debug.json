@@ -1,5 +1,5 @@
 {
-  "timestamp": "2025-08-12T23:54:07.229Z",
+  "timestamp": "2025-08-12T23:57:38.870Z",
   "method": "GET",
   "url": "/monthly-summary?month=8&year=2025",
   "headers": {
@@ -9,7 +9,7 @@
     "connection": "Keep-Alive",
     "accept-encoding": "gzip",
     "user-agent": "okhttp/4.9.2",
-    "if-none-match": "W/\"83-5rE0Sa3ShlJUTiAEMddL/ixqPZE\""
+    "if-none-match": "W/\"7f-zJ8IpjiX0JYIVH+gLIvTBue5eJs\""
   },
   "hasAuth": true
 }
