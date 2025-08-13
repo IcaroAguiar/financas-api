@@ -10,9 +10,28 @@ const createUser = async (req, res) => {
     // 1. Pega os dados do corpo da requisição
     const { email, name, password } = req.body;
 
-    // 2. Validação simples: verifica se a senha existe
+    // 2. Validações mais robustas
+    if (!name) {
+      return res.status(400).json({ error: "O nome é obrigatório." });
+    }
+
+    if (!email) {
+      return res.status(400).json({ error: "O e-mail é obrigatório." });
+    }
+
     if (!password) {
       return res.status(400).json({ error: "A senha é obrigatória." });
+    }
+
+    // Validação de formato de e-mail
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ error: "Formato de e-mail inválido." });
+    }
+
+    // Validação de tamanho da senha
+    if (password.length < 6) {
+      return res.status(400).json({ error: "A senha deve ter pelo menos 6 caracteres." });
     }
 
     // 3. Verifica se o usuário já existe no banco de dados
