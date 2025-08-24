@@ -303,6 +303,126 @@ const verifyPassword = async (req, res) => {
   }
 };
 
+// Função para atualizar perfil do usuário
+const updateProfile = async (req, res) => {
+  try {
+    const { name, email, profilePicture } = req.body;
+    const userId = req.user?.id; // Vem do middleware de autenticação
+
+    // Validação básica
+    if (!name && !email && profilePicture === undefined) {
+      return res.status(400).json({ error: "Nome, e-mail ou foto de perfil deve ser fornecido para atualização." });
+    }
+
+    // Validação de nome
+    if (name && name.trim().length === 0) {
+      return res.status(400).json({ error: "O nome não pode estar vazio." });
+    }
+
+    // Validação de e-mail
+    if (email) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ error: "Formato de e-mail inválido." });
+      }
+
+      // Verifica se o e-mail já está sendo usado por outro usuário
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+      });
+
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(409).json({ error: "Este e-mail já está em uso por outro usuário." });
+      }
+    }
+
+    // Monta o objeto de dados para atualização
+    const updateData = {};
+    if (name) updateData.name = name.trim();
+    if (email) updateData.email = email;
+    if (profilePicture !== undefined) updateData.profilePicture = profilePicture;
+
+    // Atualiza o usuário no banco de dados
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: updateData,
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        profilePicture: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    res.status(200).json({ 
+      message: "Perfil atualizado com sucesso.",
+      user: updatedUser
+    });
+
+  } catch (error) {
+    console.error("Erro ao atualizar perfil:", error);
+    res.status(500).json({ error: "Não foi possível atualizar o perfil." });
+  }
+};
+
+// Função para alterar senha do usuário
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user?.id; // Vem do middleware de autenticação
+
+    // Validação básica
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: "Senha atual e nova senha são obrigatórias." });
+    }
+
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: "A nova senha deve ter pelo menos 6 caracteres." });
+    }
+
+    if (currentPassword === newPassword) {
+      return res.status(400).json({ error: "A nova senha deve ser diferente da senha atual." });
+    }
+
+    // Busca o usuário atual
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+
+    // Verifica se a senha atual está correta
+    const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+
+    if (!isCurrentPasswordValid) {
+      return res.status(400).json({ error: "Senha atual incorreta." });
+    }
+
+    // Criptografa a nova senha
+    const hashedNewPassword = bcrypt.hashSync(newPassword, 10);
+
+    // Atualiza a senha no banco de dados
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        password: hashedNewPassword,
+      },
+    });
+
+    res.status(200).json({ 
+      message: "Senha alterada com sucesso."
+    });
+
+  } catch (error) {
+    console.error("❌ [API] Erro ao alterar senha:", error);
+    res.status(500).json({ error: "Não foi possível alterar a senha." });
+  }
+};
+
 module.exports = {
   createUser,
   loginUser,
@@ -311,5 +431,7 @@ module.exports = {
   resetPassword,
   verifyResetToken,
   verifyPassword,
+  updateProfile,
+  changePassword,
 };
 

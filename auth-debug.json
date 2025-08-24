@@ -1,12 +1,16 @@
 {
-  "timestamp": "2025-08-13T04:12:35.263Z",
-  "method": "GET",
-  "url": "/monthly-summary?month=8&year=2025",
+  "timestamp": "2025-08-24T17:45:06.812Z",
+  "method": "PUT",
+  "url": "/profile",
   "headers": {
+    "accept": "application/json, text/plain, */*",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1OGEyMWEwNi00OTdjLTQzMjktYjdmYS1mZDc5ZjQ3ODFjMDkiLCJpYXQiOjE3NTYwNTY1MDMsImV4cCI6MTc1NjE0MjkwM30.iYKS8hiZF8dqzuC4VbVg_G7wPhptPX7B6BllMvMw6ac",
+    "content-type": "application/json",
+    "content-length": "17",
     "host": "192.168.0.24:3000",
-    "user-agent": "curl/8.13.0",
-    "accept": "*/*",
-    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI5NmVlZTNhZi02MTMzLTQ0NGUtYmZlYy0wMDAyMWU2MTExMDciLCJpYXQiOjE3NTUwNTgxNjIsImV4cCI6MTc1NTE0NDU2Mn0.dlIfTbS-q0Q51ckxhBk-_qAYFcVqAiRwRp5fT6333Wc"
+    "connection": "Keep-Alive",
+    "accept-encoding": "gzip",
+    "user-agent": "okhttp/4.9.2"
   },
   "hasAuth": true
 }

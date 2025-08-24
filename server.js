@@ -38,7 +38,9 @@ app.use(helmet());
 app.use(morgan('combined'));
 
 // Middleware para permitir que o express entenda requisições com corpo em JSON
-app.use(express.json());
+// Aumenta o limite para 10MB para suportar imagens base64
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Simplified request logging for development
 app.use((req, res, next) => {

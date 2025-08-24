@@ -12,6 +12,7 @@ model User {
   email         String         @unique
   name          String
   password      String
+  profilePicture String?       // URL or base64 string for profile picture
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   
