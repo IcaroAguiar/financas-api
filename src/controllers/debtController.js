@@ -217,6 +217,10 @@ const updateDebt = async (req, res) => {
   const { description, totalAmount, dueDate, status, categoryId, accountId } = req.body;
   const userId = req.user.id;
   
+  console.log('🔧 UPDATE DEBT DEBUG - Request params:', { id });
+  console.log('🔧 UPDATE DEBT DEBUG - Request body:', JSON.stringify(req.body, null, 2));
+  console.log('🔧 UPDATE DEBT DEBUG - User ID:', userId);
+  
   try {
     // VERIFICAÇÃO CRÍTICA: A dívida pertence ao usuário logado?
     const debt = await prisma.debt.findFirst({
@@ -253,22 +257,52 @@ const updateDebt = async (req, res) => {
       }
     }
     
+    // Build update data object
+    const updateData = {
+      ...(description && { description }),
+      ...(totalAmount && { totalAmount: parseFloat(totalAmount) }),
+      ...(status && { status }),
+      ...(categoryId !== undefined && { categoryId }),
+      ...(accountId !== undefined && { accountId }),
+      // Handle installment fields
+      ...(req.body.isInstallment !== undefined && { isInstallment: req.body.isInstallment }),
+      ...(req.body.installmentCount && { installmentCount: parseInt(req.body.installmentCount) }),
+      ...(req.body.installmentFrequency && { installmentFrequency: req.body.installmentFrequency }),
+      // Handle notification field
+      ...(req.body.notificationId !== undefined && { notificationId: req.body.notificationId })
+    };
+
+    // Handle dueDate separately with proper validation
+    if (dueDate !== undefined) {
+      console.log('🔧 Processing dueDate:', dueDate, typeof dueDate);
+      if (dueDate === null || dueDate === '' || (typeof dueDate === 'string' && dueDate.trim() === '')) {
+        console.log('🔧 Setting dueDate to null (empty/null value)');
+        updateData.dueDate = null;
+      } else if (typeof dueDate === 'string' && dueDate.trim().length > 0) {
+        try {
+          const parsedDate = new Date(dueDate.trim());
+          if (isNaN(parsedDate.getTime())) {
+            console.log('🔧 Invalid date string, setting to null:', dueDate);
+            updateData.dueDate = null;
+          } else {
+            console.log('🔧 Valid date parsed:', parsedDate);
+            updateData.dueDate = parsedDate;
+          }
+        } catch (dateError) {
+          console.log('🔧 Date parsing error, setting to null:', dateError);
+          updateData.dueDate = null;
+        }
+      } else {
+        console.log('🔧 Setting dueDate to null (fallback)');
+        updateData.dueDate = null;
+      }
+    }
+    
+    console.log('🔧 UPDATE DEBT DEBUG - Update data:', JSON.stringify(updateData, null, 2));
+    
     const updated = await prisma.debt.update({
       where: { id },
-      data: {
-        ...(description && { description }),
-        ...(totalAmount && { totalAmount: parseFloat(totalAmount) }),
-        ...(dueDate !== undefined && { dueDate: (dueDate && dueDate.trim() && dueDate.trim().length > 0) ? new Date(dueDate.trim()) : null }),
-        ...(status && { status }),
-        ...(categoryId !== undefined && { categoryId }),
-        ...(accountId !== undefined && { accountId }),
-        // Handle installment fields
-        ...(req.body.isInstallment !== undefined && { isInstallment: req.body.isInstallment }),
-        ...(req.body.installmentCount && { installmentCount: parseInt(req.body.installmentCount) }),
-        ...(req.body.installmentFrequency && { installmentFrequency: req.body.installmentFrequency }),
-        // Handle notification field
-        ...(req.body.notificationId !== undefined && { notificationId: req.body.notificationId })
-      },
+      data: updateData,
       include: { 
         debtor: true, 
         payments: true,
@@ -282,8 +316,15 @@ const updateDebt = async (req, res) => {
     
     res.json(debtWithCalculatedFields);
   } catch (err) {
-    console.error("Erro ao atualizar dívida:", err);
-    res.status(500).json({ error: 'Erro ao atualizar dívida' });
+    console.error("🚨 UPDATE DEBT ERROR - Full error:", err);
+    console.error("🚨 UPDATE DEBT ERROR - Error message:", err.message);
+    console.error("🚨 UPDATE DEBT ERROR - Error code:", err.code);
+    console.error("🚨 UPDATE DEBT ERROR - Stack trace:", err.stack);
+    res.status(500).json({ 
+      error: 'Erro ao atualizar dívida',
+      details: err.message,
+      code: err.code
+    });
   }
 };
 
