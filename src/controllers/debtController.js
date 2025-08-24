@@ -29,7 +29,12 @@ const getAllDebts = async (req, res) => {
           userId // FILTRO CRÍTICO: apenas dívidas cujos devedores pertencem ao usuário logado
         }
       },
-      include: { debtor: true, payments: true }
+      include: { 
+        debtor: true, 
+        payments: true,
+        category: true,
+        account: true
+      }
     });
     
     // Add calculated fields to each debt
@@ -44,7 +49,7 @@ const getAllDebts = async (req, res) => {
 
 // Criar dívida (apenas para devedores do usuário logado)
 const createDebt = async (req, res) => {
-  const { description, totalAmount, dueDate, debtorId } = req.body;
+  const { description, totalAmount, dueDate, debtorId, categoryId, accountId } = req.body;
   const userId = req.user.id;
   
   try {
@@ -53,7 +58,7 @@ const createDebt = async (req, res) => {
     const debugLog = {
       timestamp: new Date().toISOString(),
       requestBody: req.body,
-      extractedFields: { description, totalAmount, dueDate, debtorId, userId }
+      extractedFields: { description, totalAmount, dueDate, debtorId, categoryId, accountId, userId }
     };
     fs.writeFileSync('debt-debug.json', JSON.stringify(debugLog, null, 2));
     
@@ -65,6 +70,8 @@ const createDebt = async (req, res) => {
       dueDate: dueDate,
       dueDateType: typeof dueDate,
       debtorId: `"${debtorId}"`,
+      categoryId: `"${categoryId}"`,
+      accountId: `"${accountId}"`,
       userId: `"${userId}"`
     });
     
@@ -122,6 +129,26 @@ const createDebt = async (req, res) => {
       return res.status(404).json({ error: 'Devedor não encontrado ou não pertence a você.' });
     }
     
+    // Verificar se a categoria pertence ao usuário (se fornecida)
+    if (categoryId) {
+      const category = await prisma.category.findFirst({
+        where: { id: categoryId, userId }
+      });
+      if (!category) {
+        return res.status(400).json({ error: 'Categoria não encontrada ou não pertence ao usuário.' });
+      }
+    }
+    
+    // Verificar se a conta pertence ao usuário (se fornecida)
+    if (accountId) {
+      const account = await prisma.account.findFirst({
+        where: { id: accountId, userId }
+      });
+      if (!account) {
+        return res.status(400).json({ error: 'Conta não encontrada ou não pertence ao usuário.' });
+      }
+    }
+    
     console.log('🐛 DEBT CREATION DEBUG - Parsing amount:', totalAmount);
     const parsedAmount = parseFloat(totalAmount);
     console.log('🐛 DEBT CREATION DEBUG - Parsed amount:', parsedAmount);
@@ -130,6 +157,8 @@ const createDebt = async (req, res) => {
       description,
       totalAmount: parsedAmount,
       debtorId,
+      categoryId,
+      accountId,
       status: 'PENDENTE'
     };
 
@@ -162,7 +191,12 @@ const createDebt = async (req, res) => {
     console.log('🐛 DEBT CREATION DEBUG - Creating debt in database...');
     const newDebt = await prisma.debt.create({
       data: debtData,
-      include: { debtor: true, payments: true }
+      include: { 
+        debtor: true, 
+        payments: true,
+        category: true,
+        account: true
+      }
     });
     console.log('✅ DEBT CREATION DEBUG - Debt created successfully:', newDebt.id);
     
@@ -180,7 +214,7 @@ const createDebt = async (req, res) => {
 // Atualizar dívida (apenas se pertencer ao usuário logado)
 const updateDebt = async (req, res) => {
   const { id } = req.params;
-  const { description, totalAmount, dueDate, status } = req.body;
+  const { description, totalAmount, dueDate, status, categoryId, accountId } = req.body;
   const userId = req.user.id;
   
   try {
@@ -199,6 +233,26 @@ const updateDebt = async (req, res) => {
       return res.status(404).json({ error: 'Dívida não encontrada ou não pertence a você.' });
     }
     
+    // Verificar se a categoria pertence ao usuário (se fornecida)
+    if (categoryId) {
+      const category = await prisma.category.findFirst({
+        where: { id: categoryId, userId }
+      });
+      if (!category) {
+        return res.status(400).json({ error: 'Categoria não encontrada ou não pertence ao usuário.' });
+      }
+    }
+    
+    // Verificar se a conta pertence ao usuário (se fornecida)
+    if (accountId) {
+      const account = await prisma.account.findFirst({
+        where: { id: accountId, userId }
+      });
+      if (!account) {
+        return res.status(400).json({ error: 'Conta não encontrada ou não pertence ao usuário.' });
+      }
+    }
+    
     const updated = await prisma.debt.update({
       where: { id },
       data: {
@@ -206,6 +260,8 @@ const updateDebt = async (req, res) => {
         ...(totalAmount && { totalAmount: parseFloat(totalAmount) }),
         ...(dueDate !== undefined && { dueDate: (dueDate && dueDate.trim() && dueDate.trim().length > 0) ? new Date(dueDate.trim()) : null }),
         ...(status && { status }),
+        ...(categoryId !== undefined && { categoryId }),
+        ...(accountId !== undefined && { accountId }),
         // Handle installment fields
         ...(req.body.isInstallment !== undefined && { isInstallment: req.body.isInstallment }),
         ...(req.body.installmentCount && { installmentCount: parseInt(req.body.installmentCount) }),
@@ -213,7 +269,12 @@ const updateDebt = async (req, res) => {
         // Handle notification field
         ...(req.body.notificationId !== undefined && { notificationId: req.body.notificationId })
       },
-      include: { debtor: true, payments: true }
+      include: { 
+        debtor: true, 
+        payments: true,
+        category: true,
+        account: true
+      }
     });
     
     // Add calculated fields
@@ -267,7 +328,12 @@ const getDebtById = async (req, res) => {
           userId // FILTRO CRÍTICO: só busca dívidas cujos devedores pertencem ao usuário
         }
       },
-      include: { debtor: true, payments: true },
+      include: { 
+        debtor: true, 
+        payments: true,
+        category: true,
+        account: true
+      },
     });
 
     if (!debt) {
@@ -301,7 +367,12 @@ const getDebtsByStatus = async (req, res) => {
           userId // FILTRO CRÍTICO: apenas dívidas cujos devedores pertencem ao usuário
         }
       },
-      include: { debtor: true, payments: true },
+      include: { 
+        debtor: true, 
+        payments: true,
+        category: true,
+        account: true
+      },
     });
     
     // Add calculated fields and filter by calculated status

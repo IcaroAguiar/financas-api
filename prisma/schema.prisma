@@ -38,6 +38,7 @@ model Account {
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions  Transaction[]
   subscriptions Subscription[]
+  debts         Debt[]
 
   @@unique([userId, name])
 }
@@ -50,8 +51,9 @@ model Category {
   updatedAt     DateTime       @updatedAt
   userId        String
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions  Transaction[]
   subscriptions Subscription[]
+  debtors       Debtor[]
+  debts         Debt[]
 
   @@unique([userId, name])
 }
@@ -77,7 +79,6 @@ model Transaction {
   installmentAmount         Int?                    // Changed to Int (cents)
   firstInstallmentDate      DateTime?
   
-  category       Category?       @relation(fields: [categoryId], references: [id])
   account        Account?        @relation(fields: [accountId], references: [id])
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   subscription   Subscription?   @relation(fields: [subscriptionId], references: [id])
@@ -85,15 +86,17 @@ model Transaction {
 }
 
 model Debtor {
-  id        String   @id @default(uuid())
-  name      String
-  email     String?
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  debts     Debt[]
+  id         String    @id @default(uuid())
+  name       String
+  email      String?
+  phone      String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  userId     String
+  categoryId String?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category   Category? @relation(fields: [categoryId], references: [id])
+  debts      Debt[]
 }
 
 model Debt {
@@ -104,6 +107,8 @@ model Debt {
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   debtorId      String
+  categoryId    String?
+  accountId     String?
   status        DebtStatus @default(PENDENTE)
   
   // Installment plan fields
@@ -116,6 +121,8 @@ model Debt {
   notificationId        String?                 // ID do agendamento de notificação
   
   debtor        Debtor     @relation(fields: [debtorId], references: [id], onDelete: Cascade)
+  category      Category?  @relation(fields: [categoryId], references: [id])
+  account       Account?   @relation(fields: [accountId], references: [id])
   payments      Payment[]
   installments  Installment[]
 }

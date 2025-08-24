@@ -8,9 +8,12 @@ const getAllDebtors = async (req, res) => {
     const debtors = await prisma.debtor.findMany({
       where: { userId }, // FILTRO CRÍTICO: apenas devedores do usuário logado
       include: {
+        category: true,
         debts: {
           include: {
-            payments: true
+            payments: true,
+            category: true,
+            account: true
           }
         }
       }
@@ -27,7 +30,7 @@ const getAllDebtors = async (req, res) => {
 
 // Criar devedor para o usuário logado
 const createDebtor = async (req, res) => {
-  const { name, email, phone } = req.body;
+  const { name, email, phone, categoryId } = req.body;
   const userId = req.user.id; // ID do usuário logado
   
   try {
@@ -36,13 +39,27 @@ const createDebtor = async (req, res) => {
       return res.status(400).json({ error: 'O nome do devedor é obrigatório.' });
     }
     
+    // Verificar se a categoria pertence ao usuário (se fornecida)
+    if (categoryId) {
+      const category = await prisma.category.findFirst({
+        where: { id: categoryId, userId }
+      });
+      if (!category) {
+        return res.status(400).json({ error: 'Categoria não encontrada ou não pertence ao usuário.' });
+      }
+    }
+    
     const newDebtor = await prisma.debtor.create({
       data: { 
         name, 
         email, 
         phone,
+        categoryId,
         userId // CRÍTICO: associa o devedor ao usuário logado
       },
+      include: {
+        category: true
+      }
     });
     
     res.status(201).json(newDebtor);
@@ -58,7 +75,7 @@ const createDebtor = async (req, res) => {
 // Atualizar devedor (apenas se pertencer ao usuário logado)
 const updateDebtor = async (req, res) => {
   const { id } = req.params;
-  const { name, email, phone } = req.body;
+  const { name, email, phone, categoryId } = req.body;
   const userId = req.user.id;
   
   console.log('🔧 updateDebtor called with:', {
@@ -66,6 +83,7 @@ const updateDebtor = async (req, res) => {
     name,
     email,
     phone,
+    categoryId,
     userId
   });
   
@@ -86,10 +104,23 @@ const updateDebtor = async (req, res) => {
       return res.status(403).json({ error: 'Acesso negado. Você não pode modificar este devedor.' });
     }
     
-    console.log('🔧 Updating debtor with data:', { name, email, phone });
+    // Verificar se a categoria pertence ao usuário (se fornecida)
+    if (categoryId) {
+      const category = await prisma.category.findFirst({
+        where: { id: categoryId, userId }
+      });
+      if (!category) {
+        return res.status(400).json({ error: 'Categoria não encontrada ou não pertence ao usuário.' });
+      }
+    }
+    
+    console.log('🔧 Updating debtor with data:', { name, email, phone, categoryId });
     const updated = await prisma.debtor.update({
       where: { id },
-      data: { name, email, phone },
+      data: { name, email, phone, categoryId },
+      include: {
+        category: true
+      }
     });
     
     console.log('🔧 Debtor updated successfully:', updated);
@@ -116,9 +147,12 @@ const getDebtsByDebtorId = async (req, res) => {
         userId // FILTRO CRÍTICO: apenas se o devedor pertence ao usuário logado
       },
       include: {
+        category: true,
         debts: {
           include: {
             payments: true,
+            category: true,
+            account: true
           },
         },
       },

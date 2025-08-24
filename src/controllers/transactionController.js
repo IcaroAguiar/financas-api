@@ -66,7 +66,6 @@ const generateVirtualRecurringTransactions = async (userId, startOfMonth, endOfM
       }
     },
     include: {
-      category: true,
       account: true
     }
   });
@@ -252,15 +251,9 @@ const createTransaction = async (req, res) => {
       subscriptionId,
     };
     
-    // Only set categoryId if it's not a predefined category
-    if (categoryId && !predefinedCategoryIds.includes(categoryId)) {
+    // Always set categoryId when provided (both user and predefined categories)
+    if (categoryId) {
       transactionData.categoryId = categoryId;
-    }
-    
-    // Store predefined category ID in description metadata for now
-    let predefinedCategoryId = null;
-    if (categoryId && predefinedCategoryIds.includes(categoryId)) {
-      predefinedCategoryId = categoryId;
     }
 
     // Add installment plan fields if provided
@@ -295,7 +288,6 @@ const createTransaction = async (req, res) => {
     const newTransaction = await prisma.transaction.create({
       data: transactionData,
       include: {
-        category: true, // Inclui os dados da categoria na resposta
         account: true, // Inclui os dados da conta na resposta
         subscription: true, // Include subscription info if linked
         installments: true, // Include installments if this is an installment plan
@@ -339,8 +331,7 @@ const createTransaction = async (req, res) => {
       const updatedTransaction = await prisma.transaction.findUnique({
         where: { id: newTransaction.id },
         include: {
-          category: true,
-          account: true,
+              account: true,
           subscription: true,
           installments: {
             orderBy: { installmentNumber: 'asc' }
@@ -349,16 +340,16 @@ const createTransaction = async (req, res) => {
       });
       
       // Add predefined category info to response if applicable
-      if (predefinedCategoryId) {
-        updatedTransaction.predefinedCategory = predefinedCategories[predefinedCategoryId];
+      if (categoryId && predefinedCategoryIds.includes(categoryId)) {
+        updatedTransaction.predefinedCategory = predefinedCategories[categoryId];
       }
       
       return res.status(201).json(updatedTransaction);
     }
 
     // Add predefined category info to response if applicable
-    if (predefinedCategoryId) {
-      newTransaction.predefinedCategory = predefinedCategories[predefinedCategoryId];
+    if (categoryId && predefinedCategoryIds.includes(categoryId)) {
+      newTransaction.predefinedCategory = predefinedCategories[categoryId];
     }
     
     res.status(201).json(newTransaction);
@@ -444,8 +435,7 @@ const getAllTransactions = async (req, res) => {
       where: whereClause,
       orderBy: { date: "desc" }, // Ordena da mais recente para a mais antiga
       include: { 
-        category: true,
-        account: true, // Inclui dados da conta
+          account: true, // Inclui dados da conta
         installments: {
           orderBy: { installmentNumber: 'asc' }
         }, // Include installments for payment plan transactions
@@ -470,44 +460,11 @@ const getAllTransactions = async (req, res) => {
       allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
-    // Add predefined category info to transactions that don't have category but might use predefined ones
+    // Add predefined category info to transactions that have predefined category IDs
     const transactionsWithPredefinedCategories = allTransactions.map(transaction => {
-      // Check if transaction description contains clues about predefined categories
-      // For now, we'll check if we can find a predefined category match based on stored data
-      
-      // If transaction was created with a predefined category, we need to reconstruct that info
-      // We can identify these by checking if categoryId is null but the transaction should have a category
-      if (!transaction.category && !transaction.categoryId) {
-        // Try to find predefined category info from description or other clues
-        // For transactions created with predefined categories, we'll add the info back
-        
-        // Check if this might be a predefined category transaction by checking common patterns
-        const description = transaction.description?.toLowerCase() || '';
-        
-        // Simple heuristic matching (this is a temporary solution)
-        let predefinedCategoryId = null;
-        
-        if (description.includes('almoço') || description.includes('jantar') || description.includes('café') || description.includes('restaurante') || description.includes('comida')) {
-          predefinedCategoryId = 'alimentacao';
-        } else if (description.includes('ônibus') || description.includes('onibus') || description.includes('metro') || description.includes('taxi') || description.includes('uber') || description.includes('transporte') || description.includes('trabalho')) {
-          predefinedCategoryId = 'transporte';
-        } else if (description.includes('compra') || description.includes('supermercado') || description.includes('loja') || description.includes('shopping')) {
-          predefinedCategoryId = 'compras';
-        } else if (description.includes('aluguel') || description.includes('condomínio') || description.includes('financiamento') || description.includes('casa')) {
-          predefinedCategoryId = 'moradia';
-        } else if (description.includes('médico') || description.includes('farmácia') || description.includes('hospital') || description.includes('consulta')) {
-          predefinedCategoryId = 'saude';
-        } else if (description.includes('escola') || description.includes('curso') || description.includes('faculdade') || description.includes('livro')) {
-          predefinedCategoryId = 'educacao';
-        } else if (description.includes('cinema') || description.includes('festa') || description.includes('viagem') || description.includes('diversão')) {
-          predefinedCategoryId = 'lazer';
-        } else if (description.includes('luz') || description.includes('água') || description.includes('telefone') || description.includes('internet') || description.includes('conta')) {
-          predefinedCategoryId = 'contas';
-        }
-        
-        if (predefinedCategoryId && predefinedCategories[predefinedCategoryId]) {
-          transaction.predefinedCategory = predefinedCategories[predefinedCategoryId];
-        }
+      // If transaction has a categoryId that matches a predefined category, add the predefined category info
+      if (transaction.categoryId && predefinedCategoryIds.includes(transaction.categoryId)) {
+        transaction.predefinedCategory = predefinedCategories[transaction.categoryId];
       }
       
       return transaction;
@@ -566,8 +523,7 @@ const updateTransaction = async (req, res) => {
       where: { id },
       data: dataToUpdate,
       include: { 
-        category: true,
-        account: true, // Inclui dados da conta
+          account: true, // Inclui dados da conta
       },
     });
 
@@ -680,7 +636,7 @@ const getFinancialSummary = async (req, res) => {
       where: { userId },
       orderBy: { date: "desc" },
       take: 5,
-      include: { category: true }
+      include: { }
     });
 
     // Calcula resumo do mês atual
@@ -858,8 +814,7 @@ const markTransactionPaid = async (req, res) => {
     const updatedTransaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
       include: {
-        category: true,
-        account: true,
+          account: true,
         installments: {
           orderBy: { installmentNumber: 'asc' }
         }
@@ -939,8 +894,7 @@ const registerPartialPayment = async (req, res) => {
     const updatedTransaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
       include: {
-        category: true,
-        account: true,
+          account: true,
         installments: {
           orderBy: { installmentNumber: 'asc' }
         }
