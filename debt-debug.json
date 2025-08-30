@@ -1,15 +1,17 @@
 {
-  "timestamp": "2025-08-12T23:13:18.305Z",
+  "timestamp": "2025-08-24T19:16:45.112Z",
   "requestBody": {
-    "description": "Tedte",
-    "totalAmount": 200,
-    "debtorId": "fd867c3b-9822-4618-b388-1dd5e06b3df4",
+    "description": "teste",
+    "totalAmount": 50,
+    "debtorId": "5bdcc6a0-0bda-419f-8436-f027d982f875",
+    "categoryId": "6472bffe-68fa-43e6-a39b-94ee53d3c6dd",
     "isInstallment": false
   },
   "extractedFields": {
-    "description": "Tedte",
-    "totalAmount": 200,
-    "debtorId": "fd867c3b-9822-4618-b388-1dd5e06b3df4",
-    "userId": "0b3de6f8-20b0-45db-8f52-8a3e5316c23a"
+    "description": "teste",
+    "totalAmount": 50,
+    "debtorId": "5bdcc6a0-0bda-419f-8436-f027d982f875",
+    "categoryId": "6472bffe-68fa-43e6-a39b-94ee53d3c6dd",
+    "userId": "58a21a06-497c-4329-b7fa-fd79f4781c09"
   }
 }

@@ -294,6 +294,16 @@ const createTransaction = async (req, res) => {
       },
     });
 
+    // Add custom category info if categoryId points to a custom category
+    if (categoryId && !predefinedCategoryIds.includes(categoryId)) {
+      const customCategory = await prisma.category.findUnique({
+        where: { id: categoryId }
+      });
+      if (customCategory) {
+        newTransaction.category = customCategory;
+      }
+    }
+
     // Create installment records if this is an installment plan
     if (isInstallmentPlan && installmentCount && installmentFrequency) {
       const count = parseInt(installmentCount);
@@ -354,7 +364,9 @@ const createTransaction = async (req, res) => {
     
     res.status(201).json(newTransaction);
   } catch (error) {
-    console.error("Erro ao criar transação:", error);
+    console.error("❌ DETAILED CREATE TRANSACTION ERROR:", error.message);
+    console.error("❌ ERROR STACK:", error.stack);
+    console.error("❌ REQUEST DATA:", req.body);
     res.status(500).json({ error: "Não foi possível criar a transação." });
   }
 };
@@ -442,6 +454,38 @@ const getAllTransactions = async (req, res) => {
       },
     });
 
+    // Fetch custom categories for transactions that have categoryId not in predefined list
+    const transactionIds = transactions.map(t => t.id);
+    const customCategoriesMap = {};
+    
+    if (transactionIds.length > 0) {
+      // Get all unique custom category IDs from transactions
+      const customCategoryIds = [...new Set(
+        transactions
+          .map(t => t.categoryId)
+          .filter(id => id && !predefinedCategoryIds.includes(id))
+      )];
+      
+      if (customCategoryIds.length > 0) {
+        const customCategories = await prisma.category.findMany({
+          where: { id: { in: customCategoryIds } }
+        });
+        
+        // Create map from category ID to category object
+        const categoryMap = {};
+        customCategories.forEach(cat => {
+          categoryMap[cat.id] = cat;
+        });
+        
+        // Map transactions to their custom categories
+        transactions.forEach(t => {
+          if (t.categoryId && categoryMap[t.categoryId]) {
+            customCategoriesMap[t.id] = categoryMap[t.categoryId];
+          }
+        });
+      }
+    }
+
 
     // Se há filtro de mês/ano, incluir transações virtuais recorrentes
     let allTransactions = transactions;
@@ -460,17 +504,21 @@ const getAllTransactions = async (req, res) => {
       allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
-    // Add predefined category info to transactions that have predefined category IDs
-    const transactionsWithPredefinedCategories = allTransactions.map(transaction => {
+    // Add category info to transactions (both predefined and custom categories)
+    const transactionsWithCategories = allTransactions.map(transaction => {
       // If transaction has a categoryId that matches a predefined category, add the predefined category info
       if (transaction.categoryId && predefinedCategoryIds.includes(transaction.categoryId)) {
         transaction.predefinedCategory = predefinedCategories[transaction.categoryId];
+      }
+      // If transaction has a custom category, add it from our map
+      else if (transaction.categoryId && customCategoriesMap[transaction.id]) {
+        transaction.category = customCategoriesMap[transaction.id];
       }
       
       return transaction;
     });
 
-    res.status(200).json(transactionsWithPredefinedCategories);
+    res.status(200).json(transactionsWithCategories);
   } catch (error) {
     console.error("❌ CONTROLLER ERROR:", error.message);
     console.error("❌ CONTROLLER ERROR STACK:", error.stack);
@@ -526,6 +574,20 @@ const updateTransaction = async (req, res) => {
           account: true, // Inclui dados da conta
       },
     });
+
+    // Add predefined category info to response if applicable
+    if (updatedTransaction.categoryId && predefinedCategoryIds.includes(updatedTransaction.categoryId)) {
+      updatedTransaction.predefinedCategory = predefinedCategories[updatedTransaction.categoryId];
+    }
+    // If transaction has a custom category, fetch it from database
+    else if (updatedTransaction.categoryId && !predefinedCategoryIds.includes(updatedTransaction.categoryId)) {
+      const customCategory = await prisma.category.findUnique({
+        where: { id: updatedTransaction.categoryId }
+      });
+      if (customCategory) {
+        updatedTransaction.category = customCategory;
+      }
+    }
 
     res.status(200).json(updatedTransaction);
   } catch (error) {

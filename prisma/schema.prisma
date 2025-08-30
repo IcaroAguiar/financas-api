@@ -8,37 +8,34 @@ datasource db {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  email         String         @unique
-  name          String
-  password      String
-  profilePicture String?       // URL or base64 string for profile picture
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  
-  // Password reset fields
-  resetToken    String?
+  id               String         @id @default(uuid())
+  email            String         @unique
+  name             String
+  password         String
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  profilePicture   String?
+  resetToken       String?
   resetTokenExpiry DateTime?
-  
-  categories    Category[]
-  transactions  Transaction[]
-  accounts      Account[]
-  subscriptions Subscription[]
-  debtors       Debtor[]
+  accounts         Account[]
+  categories       Category[]
+  debtors          Debtor[]
+  subscriptions    Subscription[]
+  transactions     Transaction[]
 }
 
 model Account {
   id            String         @id @default(uuid())
   name          String
   type          String
-  balance       Int?           @default(0) // Changed to Int (cents)
+  balance       Int?           @default(0)
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
   userId        String
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions  Transaction[]
-  subscriptions Subscription[]
   debts         Debt[]
+  subscriptions Subscription[]
+  transactions  Transaction[]
 
   @@unique([userId, name])
 }
@@ -51,38 +48,35 @@ model Category {
   updatedAt     DateTime       @updatedAt
   userId        String
   user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscriptions Subscription[]
-  debtors       Debtor[]
   debts         Debt[]
+  debtors       Debtor[]
+  subscriptions Subscription[]
 
   @@unique([userId, name])
 }
 
 model Transaction {
-  id             String          @id @default(uuid())
-  description    String
-  amount         Int             // Changed to Int (cents)
-  date           DateTime
-  type           TransactionType
-  isRecurring    Boolean         @default(false)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  userId         String
-  categoryId     String?
-  accountId      String?
-  subscriptionId String?
-  
-  // Payment plan fields
-  isInstallmentPlan         Boolean                 @default(false)
-  installmentCount          Int?
-  installmentFrequency      InstallmentFrequency?
-  installmentAmount         Int?                    // Changed to Int (cents)
-  firstInstallmentDate      DateTime?
-  
-  account        Account?        @relation(fields: [accountId], references: [id])
-  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  subscription   Subscription?   @relation(fields: [subscriptionId], references: [id])
-  installments   TransactionInstallment[]
+  id                   String                   @id @default(uuid())
+  description          String
+  amount               Int
+  date                 DateTime
+  type                 TransactionType
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+  userId               String
+  categoryId           String?
+  accountId            String?
+  isRecurring          Boolean                  @default(false)
+  subscriptionId       String?
+  firstInstallmentDate DateTime?
+  installmentAmount    Int?
+  installmentCount     Int?
+  installmentFrequency InstallmentFrequency?
+  isInstallmentPlan    Boolean                  @default(false)
+  account              Account?                 @relation(fields: [accountId], references: [id])
+  subscription         Subscription?            @relation(fields: [subscriptionId], references: [id])
+  user                 User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  installments         TransactionInstallment[]
 }
 
 model Debtor {
@@ -94,54 +88,49 @@ model Debtor {
   updatedAt  DateTime  @updatedAt
   userId     String
   categoryId String?
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category   Category? @relation(fields: [categoryId], references: [id])
   debts      Debt[]
+  category   Category? @relation(fields: [categoryId], references: [id])
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Debt {
-  id            String     @id @default(uuid())
-  description   String
-  totalAmount   Int        // Changed to Int (cents)
-  dueDate       DateTime?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  debtorId      String
-  categoryId    String?
-  accountId     String?
-  status        DebtStatus @default(PENDENTE)
-  
-  // Installment plan fields
-  isInstallment         Boolean                 @default(false)
-  installmentCount      Int?
-  installmentFrequency  InstallmentFrequency?
-  installmentAmount     Int?                    // Changed to Int (cents)
-  
-  // Notification management
-  notificationId        String?                 // ID do agendamento de notificação
-  
-  debtor        Debtor     @relation(fields: [debtorId], references: [id], onDelete: Cascade)
-  category      Category?  @relation(fields: [categoryId], references: [id])
-  account       Account?   @relation(fields: [accountId], references: [id])
-  payments      Payment[]
-  installments  Installment[]
+  id                   String                @id @default(uuid())
+  description          String
+  totalAmount          Int
+  dueDate              DateTime?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  debtorId             String
+  status               DebtStatus            @default(PENDENTE)
+  installmentAmount    Int?
+  installmentCount     Int?
+  installmentFrequency InstallmentFrequency?
+  isInstallment        Boolean               @default(false)
+  notificationId       String?
+  accountId            String?
+  categoryId           String?
+  account              Account?              @relation(fields: [accountId], references: [id])
+  category             Category?             @relation(fields: [categoryId], references: [id])
+  debtor               Debtor                @relation(fields: [debtorId], references: [id], onDelete: Cascade)
+  installments         Installment[]
+  payments             Payment[]
 }
 
 model Payment {
   id          String   @id @default(uuid())
-  amount      Int      // Changed to Int (cents)
-  paymentDate DateTime @default(now())
-  notes       String?
+  amount      Int
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   debtId      String
+  notes       String?
+  paymentDate DateTime @default(now())
   debt        Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
 }
 
 model Installment {
   id                String            @id @default(uuid())
   installmentNumber Int
-  amount            Int               // Changed to Int (cents)
+  amount            Int
   dueDate           DateTime
   paidDate          DateTime?
   status            InstallmentStatus @default(PENDENTE)
@@ -154,7 +143,7 @@ model Installment {
 model TransactionInstallment {
   id                String            @id @default(uuid())
   installmentNumber Int
-  amount            Int               // Changed to Int (cents)
+  amount            Int
   dueDate           DateTime
   paidDate          DateTime?
   status            InstallmentStatus @default(PENDENTE)
@@ -168,7 +157,7 @@ model Subscription {
   id              String                @id @default(uuid())
   name            String
   description     String?
-  amount          Int                   // Changed to Int (cents)
+  amount          Int
   type            TransactionType
   frequency       SubscriptionFrequency
   startDate       DateTime
@@ -178,16 +167,12 @@ model Subscription {
   lastProcessedAt DateTime?
   createdAt       DateTime              @default(now())
   updatedAt       DateTime              @updatedAt
-  
-  // Relations
   userId          String
   categoryId      String?
   accountId       String?
-  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category        Category?             @relation(fields: [categoryId], references: [id])
   account         Account?              @relation(fields: [accountId], references: [id])
-  
-  // Generated transactions
+  category        Category?             @relation(fields: [categoryId], references: [id])
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   transactions    Transaction[]
 
   @@unique([userId, name])

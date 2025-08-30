@@ -1,16 +1,15 @@
 {
-  "timestamp": "2025-08-24T17:45:06.812Z",
-  "method": "PUT",
-  "url": "/profile",
+  "timestamp": "2025-08-30T17:54:07.210Z",
+  "method": "GET",
+  "url": "/?month=8&year=2025",
   "headers": {
     "accept": "application/json, text/plain, */*",
-    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1OGEyMWEwNi00OTdjLTQzMjktYjdmYS1mZDc5ZjQ3ODFjMDkiLCJpYXQiOjE3NTYwNTY1MDMsImV4cCI6MTc1NjE0MjkwM30.iYKS8hiZF8dqzuC4VbVg_G7wPhptPX7B6BllMvMw6ac",
-    "content-type": "application/json",
-    "content-length": "17",
-    "host": "192.168.0.24:3000",
+    "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI1OGEyMWEwNi00OTdjLTQzMjktYjdmYS1mZDc5ZjQ3ODFjMDkiLCJpYXQiOjE3NTY1NzQwMjMsImV4cCI6MTc1NjY2MDQyM30.RjnkrA6lwslAP3twg-1EeZLUnYANkR31pjeVnCSUHjA",
+    "host": "192.168.0.94:3000",
     "connection": "Keep-Alive",
     "accept-encoding": "gzip",
-    "user-agent": "okhttp/4.9.2"
+    "user-agent": "okhttp/4.9.2",
+    "if-none-match": "W/\"99b-0WhK9NKk8iKVQlt37U+7cbLYA1Q\""
   },
   "hasAuth": true
 }
