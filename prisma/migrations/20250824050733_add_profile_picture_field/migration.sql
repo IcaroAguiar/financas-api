@@ -13,8 +13,13 @@
   - Added the required column `userId` to the `Debtor` table without a default value. This is not possible if the table is not empty.
 
 */
--- AlterEnum
-ALTER TYPE "TransactionType" ADD VALUE 'PAGO';
+-- AlterEnum - Add PAGO value if it doesn't exist
+DO $$ 
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_enum WHERE enumlabel = 'PAGO' AND enumtypid = (SELECT oid FROM pg_type WHERE typname = 'TransactionType')) THEN
+        ALTER TYPE "TransactionType" ADD VALUE 'PAGO';
+    END IF;
+END $$;
 
 -- AlterTable
 ALTER TABLE "Account" ALTER COLUMN "balance" SET DEFAULT 0,
